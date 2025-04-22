@@ -13,7 +13,7 @@ def main():
     parser.add_argument("--user-agent", type=str, help="Custom User-Agent string")
     parser.add_argument("--debug", action="store_true", help="Enable debug logging")
     parser.add_argument(
-        "--docs", 
+        "--documentation", 
         type=str, 
         nargs="+", 
         help="URLs to documentation sites to include (can specify multiple)"
@@ -42,7 +42,7 @@ def main():
     logger.info(f"Starting mcp-docy server with logging level: {log_level}")
 
     try:
-        asyncio.run(serve(args.user_agent, args.docs, args.cache_ttl))
+        asyncio.run(serve(args.user_agent, args.documentation, args.cache_ttl))
     except KeyboardInterrupt:
         logger.info("Server interrupted by keyboard interrupt")
     except Exception as e:

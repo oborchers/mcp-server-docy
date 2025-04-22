@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "docy": {
+      "type": "stdio",
+      "command": "uv",
+      "args": [
+        "--directory",
+        "/Users/oliverborchers/Desktop/Code.nosync/mcp-server-docy",
+        "run",
+        "-m",
+        "mcp_server_docy",
+        "--documentation",
+        "https://docs.crawl4ai.com/"
+      ],
+      "env": {}
+    }
+  }
+}
