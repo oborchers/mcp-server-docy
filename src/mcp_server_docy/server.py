@@ -259,6 +259,70 @@ def documentation_page(url: str) -> str:
     return f"Please provide the full documentation content from the following URL: {url}"
 
 
+@mcp.tool()
+async def fetch_document_links(url: str) -> str:
+    """Fetch all links from a documentation page, categorized by internal and external links.
+    
+    This tool retrieves all links from a web page at the specified URL and returns them categorized
+    as internal links (within the same domain) and external links (to other domains). Use this tool
+    to discover related documentation pages from a starting URL.
+    
+    Example usage:
+    ```
+    fetch_document_links(url="https://example.com/documentation/page")
+    ```
+    
+    Response includes a structured list of internal and external links found on the page, with their
+    URLs and link text when available.
+    """
+    logger.info(f"Tool call: fetching links from documentation page at URL: {url}")
+    
+    # Make sure the URL is properly formatted with scheme
+    if not url.startswith(('http://', 'https://')):
+        url = f"https://{url}"
+    
+    try:
+        result = await fetch_documentation_content(url)
+        logger.info(f"Successfully fetched links from documentation page")
+        
+        if not result.get('success', True):
+            return f"# Failed to retrieve links from {url}\n\nUnable to access the page. Please verify the URL is valid and accessible."
+        
+        # Get the links from the result
+        links = result.get('links', {})
+        
+        # Format the links for output
+        formatted_output = [f"# Links extracted from {url}\n"]
+        
+        # Add internal links section
+        internal_links = links.get("internal", [])
+        formatted_output.append(f"\n## Internal Links ({len(internal_links)})\n")
+        for link in internal_links:
+            href = link.get("href", "")
+            text = link.get("text", "").strip() or "[No text]"
+            formatted_output.append(f"- [{text}]({href})")
+        
+        # Add external links section
+        external_links = links.get("external", [])
+        formatted_output.append(f"\n## External Links ({len(external_links)})\n")
+        for link in external_links:
+            href = link.get("href", "")
+            text = link.get("text", "").strip() or "[No text]"
+            formatted_output.append(f"- [{text}]({href})")
+        
+        return "\n".join(formatted_output)
+            
+    except Exception as e:
+        logger.error(f"Error fetching links from URL {url}: {str(e)}")
+        return f"# Error retrieving links\n\nFailed to retrieve links from {url}. Error: {str(e)}"
+
+
+@mcp.prompt()
+def documentation_links(url: str) -> str:
+    """Fetch all links from a documentation page to discover related content"""
+    return f"Please list all links available on the documentation page at the following URL: {url}"
+
+
 def ensure_crawl4ai_setup():
     """Ensure that crawl4ai is properly set up by running the crawl4ai-setup command."""
     if settings.skip_crawl4ai_setup:
