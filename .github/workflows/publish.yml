@@ -1,0 +1,60 @@
+name: Publish to PyPI
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  version-check:
+    name: verify-version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history and tags
+
+      - name: Get tag version
+        id: tag
+        run: echo "TAG_VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Install the project
+        run: uv sync --locked --all-extras --dev
+
+      - name: Check pyproject.toml version
+        id: check_version
+        run: |
+          VERSION=$(uv run python -c "import tomli; f = open('pyproject.toml', 'rb'); data = tomli.load(f); f.close(); print(data['project']['version'])")
+          echo "PYPROJECT_VERSION=$VERSION" >> $GITHUB_ENV
+          
+          # Compare tag version with pyproject.toml version
+          if [ "${{ env.TAG_VERSION }}" != "$VERSION" ]; then
+            echo "::error::Tag version (v${{ env.TAG_VERSION }}) does not match pyproject.toml version ($VERSION)"
+            exit 1
+          else
+            echo "✅ Version in pyproject.toml matches tag version (v${{ env.TAG_VERSION }})"
+          fi
+
+  publish:
+    needs: [version-check]
+    name: python
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Install the project
+        run: uv sync --locked --all-extras --dev
+
+      - name: Build package
+        run: uv run python -m build
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.PYPI_API_TOKEN }}
