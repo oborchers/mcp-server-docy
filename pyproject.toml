@@ -25,7 +25,7 @@ dependencies = [
 ]
 
 [project.scripts]
-mcp-server-docy = "mcp_server_docy:main"
+mcp-server-docy = "mcp_server_docy.__main__:main"
 
 [build-system]
 requires = ["hatchling"]
