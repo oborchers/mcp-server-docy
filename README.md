@@ -49,7 +49,7 @@ pip install mcp-server-docy
 After installation, you can run it as a script using:
 
 ```
-DOCY_DOCUMENTATION_URLS="https://docs.python.org/3/,https://react.dev/" python -m mcp_server_docy
+docy_documentation_urls="https://docs.python.org/3/,https://react.dev/" python -m mcp_server_docy
 ```
 
 ### Using Docker
@@ -58,7 +58,7 @@ You can also use the Docker image:
 
 ```
 docker pull oborchers/mcp-server-docy:latest
-docker run -i --rm -e DOCY_DOCUMENTATION_URLS="https://docs.python.org/3/,https://react.dev/" oborchers/mcp-server-docy
+docker run -i --rm -e docy_documentation_urls="https://docs.python.org/3/,https://react.dev/" oborchers/mcp-server-docy
 ```
 
 ## Configuration
@@ -76,7 +76,7 @@ Add to your Claude settings:
     "command": "uvx",
     "args": ["mcp-server-docy"],
     "env": {
-      "DOCY_DOCUMENTATION_URLS": "https://docs.python.org/3/,https://react.dev/"
+      "docy_documentation_urls": "https://docs.python.org/3/,https://react.dev/"
     }
   }
 }
@@ -92,7 +92,7 @@ Add to your Claude settings:
     "command": "docker",
     "args": ["run", "-i", "--rm", "oborchers/mcp-server-docy:latest"],
     "env": {
-      "DOCY_DOCUMENTATION_URLS": "https://docs.python.org/3/,https://react.dev/"
+      "docy_documentation_urls": "https://docs.python.org/3/,https://react.dev/"
     }
   }
 }
@@ -108,7 +108,7 @@ Add to your Claude settings:
     "command": "python",
     "args": ["-m", "mcp_server_docy"],
     "env": {
-      "DOCY_DOCUMENTATION_URLS": "https://docs.python.org/3/,https://react.dev/"
+      "docy_documentation_urls": "https://docs.python.org/3/,https://react.dev/"
     }
   }
 }
@@ -154,7 +154,7 @@ Optionally, you can add it to a file called `.vscode/mcp.json` in your workspace
         "command": "docker",
         "args": ["run", "-i", "--rm", "oborchers/mcp-server-docy:latest"],
         "env": {
-          "DOCY_DOCUMENTATION_URLS": "https://docs.python.org/3/,https://react.dev/"
+          "docy_documentation_urls": "https://docs.python.org/3/,https://react.dev/"
         }
       }
     }
@@ -167,11 +167,11 @@ Optionally, you can add it to a file called `.vscode/mcp.json` in your workspace
 
 The application can be configured using environment variables:
 
-- `DOCY_DOCUMENTATION_URLS` (string): Comma-separated list of URLs to documentation sites to include (e.g., "https://docs.python.org/3/,https://react.dev/")
-- `DOCY_CACHE_TTL` (integer): Cache time-to-live in seconds (default: 3600)
-- `DOCY_USER_AGENT` (string): Custom User-Agent string for HTTP requests
-- `DOCY_DEBUG` (boolean): Enable debug logging ("true", "1", "yes", or "y")
-- `DOCY_SKIP_CRAWL4AI_SETUP` (boolean): Skip running the crawl4ai-setup command at startup ("true", "1", "yes", or "y")
+- `docy_documentation_urls` (string): Comma-separated list of URLs to documentation sites to include (e.g., "https://docs.python.org/3/,https://react.dev/")
+- `docy_cache_ttl` (integer): Cache time-to-live in seconds (default: 3600)
+- `docy_user_agent` (string): Custom User-Agent string for HTTP requests
+- `docy_debug` (boolean): Enable debug logging ("true", "1", "yes", or "y")
+- `docy_skip_crawl4ai_setup` (boolean): Skip running the crawl4ai-setup command at startup ("true", "1", "yes", or "y")
 
 Environment variables can be set directly or via a `.env` file.
 
@@ -180,14 +180,14 @@ Environment variables can be set directly or via a `.env` file.
 You can use the MCP inspector to debug the server. For uvx installations:
 
 ```
-DOCY_DOCUMENTATION_URLS="https://docs.python.org/3/" npx @modelcontextprotocol/inspector uvx mcp-server-docy
+docy_documentation_urls="https://docs.python.org/3/" npx @modelcontextprotocol/inspector uvx mcp-server-docy
 ```
 
 Or if you've installed the package in a specific directory or are developing on it:
 
 ```
 cd path/to/docy
-DOCY_DOCUMENTATION_URLS="https://docs.python.org/3/" npx @modelcontextprotocol/inspector uv run mcp-server-docy
+docy_documentation_urls="https://docs.python.org/3/" npx @modelcontextprotocol/inspector uv run mcp-server-docy
 ```
 
 ## Release Process
