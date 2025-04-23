@@ -1,4 +1,4 @@
-from mcp_server_docy.server import Settings, SERVER_NAME, SERVER_VERSION
+from mcp_server_docy.server import Settings, SERVER_NAME
 
 
 def test_settings():
@@ -10,4 +10,3 @@ def test_settings():
 def test_server_metadata():
     """Test server metadata constants."""
     assert SERVER_NAME == "Docy"
-    assert SERVER_VERSION == "0.1.0"
