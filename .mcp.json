@@ -2,16 +2,10 @@
   "mcpServers": {
     "docy": {
       "type": "stdio",
-      "command": "uv",
-      "args": [
-        "--directory",
-        "/Users/oliverborchers/Desktop/Code.nosync/mcp-server-docy",
-        "run",
-        "-m",
-        "mcp_server_docy"
-      ],
+      "command": "uvx",
+      "args": ["mcp-server-docy"],
       "env": {
-        "DOCY_DOCUMENTATION_URLS": "https://docs.crawl4ai.com/,https://raw.githubusercontent.com/jlowin/fastmcp/refs/heads/main/README.md"
+        "DOCY_DOCUMENTATION_URLS": "https://docs.crawl4ai.com/,https://raw.githubusercontent.com/jlowin/fastmcp/refs/heads/main/README.md,https://raw.githubusercontent.com/aio-libs/aiocache/refs/heads/master/README.rst"
       }
     }
   }
