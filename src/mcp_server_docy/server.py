@@ -1,6 +1,7 @@
 from typing import Dict, List, Optional
 import json
 import subprocess
+import asyncio
 from functools import wraps
 from loguru import logger
 from pydantic import Field
@@ -162,21 +163,6 @@ async def fetch_documentation_content(url: str) -> Dict:
         raise ValueError(f"Failed to fetch documentation content: {str(e)}")
 
 
-@mcp.resource("documentation://{url}")
-async def get_documentation(url: str) -> str:
-    """Get documentation content for a specific URL."""
-    logger.info(f"Resource request for documentation URL: {url}")
-    result = await fetch_documentation_content(url)
-    
-    if not result.get('success', True):
-        return f"# Failed to load content from {url}\n\nUnable to retrieve documentation content. Please verify the URL is valid and accessible."
-    
-    title = result.get('title', 'Documentation')
-    markdown = result.get('markdown', '')
-    
-    return f"# {title}\n\n{markdown}"
-
-
 @mcp.resource("documentation://sources")
 def list_documentation_sources() -> str:
     """List all configured documentation sources."""
@@ -241,6 +227,10 @@ async def fetch_documentation_page(url: str) -> str:
     """
     logger.info(f"Tool call: fetching documentation page content for URL: {url}")
     
+    # Make sure the URL is properly formatted with scheme
+    if not url.startswith(('http://', 'https://')):
+        url = f"https://{url}"
+    
     try:
         result = await fetch_documentation_content(url)
         logger.info(f"Successfully fetched documentation page content")
@@ -254,7 +244,7 @@ async def fetch_documentation_page(url: str) -> str:
         return f"# {title}\n\n{markdown}"
     except Exception as e:
         logger.error(f"Error fetching documentation page: {str(e)}")
-        raise
+        return f"# Error retrieving documentation\n\nFailed to retrieve documentation from {url}. Error: {str(e)}"
 
 
 @mcp.prompt()
@@ -298,6 +288,23 @@ def ensure_crawl4ai_setup():
         logger.warning("Continuing despite setup failure, but functionality may be limited")
 
 
+async def cache_documentation_urls():
+    """Pre-cache all documentation URLs configured in settings."""
+    docs_urls = settings.documentation_urls
+    if not docs_urls:
+        logger.warning("No documentation URLs to cache")
+        return
+        
+    logger.info(f"Pre-caching {len(docs_urls)} documentation URLs...")
+    for url in docs_urls:
+        try:
+            logger.info(f"Pre-caching documentation URL: {url}")
+            await fetch_documentation_content(url)
+            logger.info(f"Successfully cached content from {url}")
+        except Exception as e:
+            logger.error(f"Failed to cache documentation URL {url}: {str(e)}")
+
+
 def create_server() -> FastMCP:
     """Create and configure the MCP server instance."""
     global cache
@@ -307,8 +314,16 @@ def create_server() -> FastMCP:
     
     # Ensure crawl4ai is properly set up
     ensure_crawl4ai_setup()
+
+    # Pre-cache documentation URLs
+    if settings.documentation_urls:
+        logger.info("Pre-caching documentation URLs...")
+        asyncio.run(cache_documentation_urls())
     
+    # Log server creation
     logger.info(f"Created MCP server with name: {SERVER_NAME}")
     logger.info(f"Configured with {len(settings.documentation_urls)} documentation URLs and cache TTL: {settings.cache_ttl}s")
+    
+    # Note: URL caching will be initiated in __main__.py after server startup
     
     return mcp
