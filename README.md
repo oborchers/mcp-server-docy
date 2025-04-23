@@ -6,32 +6,30 @@ A Model Context Protocol server that provides documentation access capabilities.
 
 ### Available Tools
 
-- `list_documentation` - List all available documentation sites
+- `list_documentation_sources_tool` - List all available documentation sources
   - No parameters required
 
-- `get_doc_toc` - Get the table of contents for a specific documentation site
-  - `doc_index` (integer, required): Index of the documentation site to access
+- `fetch_documentation_page` - Fetch the content of a documentation page by URL as markdown
+  - `url` (string, required): The URL to fetch content from
 
-- `get_doc_page` - Get a specific page from a documentation site
-  - `doc_index` (integer, required): Index of the documentation site to access
-  - `url` (string, required): URL of the specific documentation page to get
+- `fetch_document_links` - Fetch all links from a documentation page
+  - `url` (string, required): The URL to fetch links from
 
 ### Prompts
 
-- **list_docs**
-  - List all available documentation sites
+- **documentation_sources**
+  - List all available documentation sources with their URLs and types
   - No arguments required
 
-- **doc_toc**
-  - Get the table of contents for a specific documentation site
+- **documentation_page**
+  - Fetch the full content of a documentation page at a specific URL as markdown
   - Arguments:
-    - `doc_index` (integer, required): Index of the documentation site to access
-
-- **doc_page**
-  - Get a specific page from a documentation site
-  - Arguments:
-    - `doc_index` (integer, required): Index of the documentation site to access
     - `url` (string, required): URL of the specific documentation page to get
+
+- **documentation_links**
+  - Fetch all links from a documentation page to discover related content
+  - Arguments:
+    - `url` (string, required): URL of the documentation page to get links from
 
 ## Installation
 
@@ -51,7 +49,7 @@ pip install mcp-server-docy
 After installation, you can run it as a script using:
 
 ```
-DOCY_DOCUMENTATION_URLS="https://docs.python.org/3/,https://react.dev/" python -m mcp_server_docy
+DOCY_DOCUMENTATION_URLS="https://docs.crawl4ai.com/,https://react.dev/" python -m mcp_server_docy
 ```
 
 ### Using Docker
@@ -60,7 +58,7 @@ You can also use the Docker image:
 
 ```
 docker pull oborchers/mcp-server-docy:latest
-docker run -i --rm -e DOCY_DOCUMENTATION_URLS="https://docs.python.org/3/,https://react.dev/" oborchers/mcp-server-docy
+docker run -i --rm -e DOCY_DOCUMENTATION_URLS="https://docs.crawl4ai.com/,https://react.dev/" oborchers/mcp-server-docy
 ```
 
 ## Configuration
@@ -78,7 +76,7 @@ Add to your Claude settings:
     "command": "uvx",
     "args": ["mcp-server-docy"],
     "env": {
-      "DOCY_DOCUMENTATION_URLS": "https://docs.python.org/3/,https://react.dev/"
+      "DOCY_DOCUMENTATION_URLS": "https://docs.crawl4ai.com/,https://react.dev/"
     }
   }
 }
@@ -94,7 +92,7 @@ Add to your Claude settings:
     "command": "docker",
     "args": ["run", "-i", "--rm", "oborchers/mcp-server-docy:latest"],
     "env": {
-      "DOCY_DOCUMENTATION_URLS": "https://docs.python.org/3/,https://react.dev/"
+      "DOCY_DOCUMENTATION_URLS": "https://docs.crawl4ai.com/,https://react.dev/"
     }
   }
 }
@@ -110,7 +108,7 @@ Add to your Claude settings:
     "command": "python",
     "args": ["-m", "mcp_server_docy"],
     "env": {
-      "DOCY_DOCUMENTATION_URLS": "https://docs.python.org/3/,https://react.dev/"
+      "DOCY_DOCUMENTATION_URLS": "https://docs.crawl4ai.com/,https://react.dev/"
     }
   }
 }
@@ -156,7 +154,7 @@ Optionally, you can add it to a file called `.vscode/mcp.json` in your workspace
         "command": "docker",
         "args": ["run", "-i", "--rm", "oborchers/mcp-server-docy:latest"],
         "env": {
-          "DOCY_DOCUMENTATION_URLS": "https://docs.python.org/3/,https://react.dev/"
+          "DOCY_DOCUMENTATION_URLS": "https://docs.crawl4ai.com/,https://react.dev/"
         }
       }
     }
@@ -169,7 +167,7 @@ Optionally, you can add it to a file called `.vscode/mcp.json` in your workspace
 
 The application can be configured using environment variables:
 
-- `DOCY_DOCUMENTATION_URLS` (string): Comma-separated list of URLs to documentation sites to include (e.g., "https://docs.python.org/3/,https://react.dev/")
+- `DOCY_DOCUMENTATION_URLS` (string): Comma-separated list of URLs to documentation sites to include (e.g., "https://docs.crawl4ai.com/,https://react.dev/")
 - `DOCY_CACHE_TTL` (integer): Cache time-to-live in seconds (default: 3600)
 - `DOCY_USER_AGENT` (string): Custom User-Agent string for HTTP requests
 - `DOCY_DEBUG` (boolean): Enable debug logging ("true", "1", "yes", or "y")
@@ -177,19 +175,30 @@ The application can be configured using environment variables:
 
 Environment variables can be set directly or via a `.env` file.
 
+### Caching Behavior
+
+The MCP server automatically caches documentation content to improve performance:
+
+- At startup, the server pre-fetches and caches all configured documentation URLs from `DOCY_DOCUMENTATION_URLS`
+- The cache time-to-live (TTL) can be configured via the `DOCY_CACHE_TTL` environment variable
+- Each new site accessed is automatically loaded into cache to reduce traffic and improve response times
+- Cached content is stored in memory and persists for the duration of the TTL
+
+This caching strategy minimizes external requests and significantly improves response times for frequently accessed documentation.
+
 ## Debugging
 
 You can use the MCP inspector to debug the server. For uvx installations:
 
 ```
-DOCY_DOCUMENTATION_URLS="https://docs.python.org/3/" npx @modelcontextprotocol/inspector uvx mcp-server-docy
+DOCY_DOCUMENTATION_URLS="https://docs.crawl4ai.com/" npx @modelcontextprotocol/inspector uvx mcp-server-docy
 ```
 
 Or if you've installed the package in a specific directory or are developing on it:
 
 ```
 cd path/to/docy
-DOCY_DOCUMENTATION_URLS="https://docs.python.org/3/" npx @modelcontextprotocol/inspector uv run mcp-server-docy
+DOCY_DOCUMENTATION_URLS="https://docs.crawl4ai.com/" npx @modelcontextprotocol/inspector uv run mcp-server-docy
 ```
 
 ## Release Process
