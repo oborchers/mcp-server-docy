@@ -8,11 +8,11 @@
         "/Users/oliverborchers/Desktop/Code.nosync/mcp-server-docy",
         "run",
         "-m",
-        "mcp_server_docy",
-        "--documentation",
-        "https://docs.crawl4ai.com/"
+        "mcp_server_docy"
       ],
-      "env": {}
+      "env": {
+        "DOCY_DOCUMENTATION_URLS": "https://docs.crawl4ai.com/,https://raw.githubusercontent.com/jlowin/fastmcp/refs/heads/main/README.md"
+      }
     }
   }
 }

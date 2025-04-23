@@ -534,14 +534,12 @@ wheels = [
 ]
 
 [[package]]
-name = "dotenv"
-version = "0.9.9"
+name = "exceptiongroup"
+version = "1.2.2"
 source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "python-dotenv" },
-]
+sdist = { url = "https://files.pythonhosted.org/packages/09/35/2495c4ac46b980e4ca1f6ad6db102322ef3ad2410b79fdde159a4b0f3b92/exceptiongroup-1.2.2.tar.gz", hash = "sha256:47c2edf7c6738fafb49fd34290706d1a1a2f4d1c6df275526b62cbb4aa5393cc", size = 28883 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/b2/b7/545d2c10c1fc15e48653c91efde329a790f2eecfbbf2bd16003b5db2bab0/dotenv-0.9.9-py2.py3-none-any.whl", hash = "sha256:29cf74a087b31dafdb5a446b6d7e11cbce8ed2741540e2339c69fbef92c94ce9", size = 1892 },
+    { url = "https://files.pythonhosted.org/packages/02/cc/b7e31358aac6ed1ef2bb790a9746ac2c69bcb3c8588b41616914eb106eaf/exceptiongroup-1.2.2-py3-none-any.whl", hash = "sha256:3111b9d131c238bec2f8f516e123e14ba243563fb135d3fe885990585aa7795b", size = 16453 },
 ]
 
 [[package]]
@@ -562,35 +560,22 @@ wheels = [
 ]
 
 [[package]]
-name = "fastapi"
-version = "0.115.12"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "pydantic" },
-    { name = "starlette" },
-    { name = "typing-extensions" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/f4/55/ae499352d82338331ca1e28c7f4a63bfd09479b16395dce38cf50a39e2c2/fastapi-0.115.12.tar.gz", hash = "sha256:1e2c2a2646905f9e83d32f04a3f86aff4a286669c6c950ca95b5fd68c2602681", size = 295236 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/50/b3/b51f09c2ba432a576fe63758bddc81f78f0c6309d9e5c10d194313bf021e/fastapi-0.115.12-py3-none-any.whl", hash = "sha256:e94613d6c05e27be7ffebdd6ea5f388112e5e430c8f7d6494a9d1d88d43e814d", size = 95164 },
-]
-
-[[package]]
 name = "fastmcp"
-version = "2.1.2"
+version = "2.2.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "dotenv" },
-    { name = "fastapi" },
+    { name = "exceptiongroup" },
+    { name = "httpx" },
     { name = "mcp" },
     { name = "openapi-pydantic" },
+    { name = "python-dotenv" },
     { name = "rich" },
     { name = "typer" },
     { name = "websockets" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ae/7c/bc08df6967b58f1ebf403618c69aa88425757a28190877943c4720bb1a7d/fastmcp-2.1.2.tar.gz", hash = "sha256:0098eb57ce9862582c30c619da4c5d8f52757e433baa18407743c2e9c48f32aa", size = 911145 }
+sdist = { url = "https://files.pythonhosted.org/packages/a5/bb/5da870f11f5cfa6f2c573022e7ee0de9d9f4eef787ce95af3181b60d5f86/fastmcp-2.2.1.tar.gz", hash = "sha256:9c3e977349a324de011c3fcab7eec15de094e8189aef2745297cc5ca687632c2", size = 925991 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/67/35/f7a312e5b2a5637b4a62777cf72f3c29a3a149f2ecdb7fbba916b74c22cd/fastmcp-2.1.2-py3-none-any.whl", hash = "sha256:24584059ec5b6dabacb273aca4ccb852bd184ca87c495fdce50376a6eb28faaf", size = 74289 },
+    { url = "https://files.pythonhosted.org/packages/4d/9b/63ab7f64440c39857b3229aa5de6bf5f0849f91a7be04160e22a96f0ca42/fastmcp-2.2.1-py3-none-any.whl", hash = "sha256:0e4071c290f5b00db3fd59068cc7d832981bc7458880ba4d59b8c515fef17545", size = 75906 },
 ]
 
 [[package]]
@@ -755,18 +740,17 @@ wheels = [
 
 [[package]]
 name = "httpx"
-version = "0.27.2"
+version = "0.28.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyio" },
     { name = "certifi" },
     { name = "httpcore" },
     { name = "idna" },
-    { name = "sniffio" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/78/82/08f8c936781f67d9e6b9eeb8a0c8b4e406136ea4c3d1f89a5db71d42e0e6/httpx-0.27.2.tar.gz", hash = "sha256:f7c2be1d2f3c3c3160d441802406b206c2b76f5947b11115e6df10c6c65e66c2", size = 144189 }
+sdist = { url = "https://files.pythonhosted.org/packages/b1/df/48c586a5fe32a0f01324ee087459e112ebb7224f646c0b5023f5e79e9956/httpx-0.28.1.tar.gz", hash = "sha256:75e98c5f16b0f35b567856f597f06ff2270a374470a5c2392242528e3e3e42fc", size = 141406 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/56/95/9377bcb415797e44274b51d46e3249eba641711cf3348050f76ee7b15ffc/httpx-0.27.2-py3-none-any.whl", hash = "sha256:7bb2708e112d8fdd7829cd4243970f0c223274051cb35ee80c03301ee29a3df0", size = 76395 },
+    { url = "https://files.pythonhosted.org/packages/2a/39/e50c7c3a983047577ee07d2a9e53faf5a69493943ec3f6a384bdc792deb2/httpx-0.28.1-py3-none-any.whl", hash = "sha256:d909fcccc110f8c7faf814ca82a9a4d816bc5a6dbfea25d6591d6985b8ba59ad", size = 73517 },
 ]
 
 [[package]]
@@ -1186,7 +1170,6 @@ dependencies = [
     { name = "aiocache" },
     { name = "crawl4ai" },
     { name = "fastmcp" },
-    { name = "httpx" },
     { name = "loguru" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
@@ -1207,8 +1190,7 @@ dev = [
 requires-dist = [
     { name = "aiocache", specifier = ">=0.12.0" },
     { name = "crawl4ai", specifier = ">=0.6.0rc1" },
-    { name = "fastmcp", specifier = ">=2.0.0" },
-    { name = "httpx", specifier = "<0.28" },
+    { name = "fastmcp", specifier = ">=2.2.1" },
     { name = "loguru", specifier = ">=0.7.3" },
     { name = "pydantic", specifier = ">=2.0.0" },
     { name = "pydantic-settings", specifier = ">=2.0.0" },
