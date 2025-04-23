@@ -1,6 +1,6 @@
 # Docy MCP Server
 
-A Model Context Protocol server that provides documentation access capabilities. This server enables LLMs to search and retrieve content from documentation websites by scraping them with crawl4ai.
+A Model Context Protocol server that provides documentation access capabilities. This server enables LLMs to search and retrieve content from documentation websites by scraping them with crawl4ai. Built with FastMCP v2.
 
 ### Available Tools
 
@@ -49,7 +49,7 @@ pip install mcp-server-docy
 After installation, you can run it as a script using:
 
 ```
-python -m mcp_server_docy --docs https://docs.python.org/3/ https://react.dev/
+DOCY_DOCUMENTATION_URLS="https://docs.python.org/3/,https://react.dev/" python -m mcp_server_docy
 ```
 
 ### Using Docker
@@ -58,7 +58,7 @@ You can also use the Docker image:
 
 ```
 docker pull oborchers/mcp-server-docy:latest
-docker run -i --rm oborchers/mcp-server-docy --docs https://docs.python.org/3/ https://react.dev/
+docker run -i --rm -e DOCY_DOCUMENTATION_URLS="https://docs.python.org/3/,https://react.dev/" oborchers/mcp-server-docy
 ```
 
 ## Configuration
@@ -74,7 +74,10 @@ Add to your Claude settings:
 "mcpServers": {
   "docy": {
     "command": "uvx",
-    "args": ["mcp-server-docy", "--docs", "https://docs.python.org/3/", "https://react.dev/"]
+    "args": ["mcp-server-docy"],
+    "env": {
+      "DOCY_DOCUMENTATION_URLS": "https://docs.python.org/3/,https://react.dev/"
+    }
   }
 }
 ```
@@ -87,7 +90,10 @@ Add to your Claude settings:
 "mcpServers": {
   "docy": {
     "command": "docker",
-    "args": ["run", "-i", "--rm", "oborchers/mcp-server-docy:latest", "--docs", "https://docs.python.org/3/", "https://react.dev/"]
+    "args": ["run", "-i", "--rm", "oborchers/mcp-server-docy:latest"],
+    "env": {
+      "DOCY_DOCUMENTATION_URLS": "https://docs.python.org/3/,https://react.dev/"
+    }
   }
 }
 ```
@@ -100,7 +106,10 @@ Add to your Claude settings:
 "mcpServers": {
   "docy": {
     "command": "python",
-    "args": ["-m", "mcp_server_docy", "--docs", "https://docs.python.org/3/", "https://react.dev/"]
+    "args": ["-m", "mcp_server_docy"],
+    "env": {
+      "DOCY_DOCUMENTATION_URLS": "https://docs.python.org/3/,https://react.dev/"
+    }
   }
 }
 ```
@@ -123,7 +132,10 @@ Optionally, you can add it to a file called `.vscode/mcp.json` in your workspace
     "servers": {
       "docy": {
         "command": "uvx",
-        "args": ["mcp-server-docy", "--docs", "https://docs.python.org/3/", "https://react.dev/"]
+        "args": ["mcp-server-docy"],
+        "env": {
+          "DOCY_DOCUMENTATION_URLS": "https://docs.python.org/3/,https://react.dev/"
+        }
       }
     }
   }
@@ -140,7 +152,10 @@ Optionally, you can add it to a file called `.vscode/mcp.json` in your workspace
     "servers": {
       "docy": {
         "command": "docker",
-        "args": ["run", "-i", "--rm", "oborchers/mcp-server-docy:latest", "--docs", "https://docs.python.org/3/", "https://react.dev/"]
+        "args": ["run", "-i", "--rm", "oborchers/mcp-server-docy:latest"],
+        "env": {
+          "DOCY_DOCUMENTATION_URLS": "https://docs.python.org/3/,https://react.dev/"
+        }
       }
     }
   }
@@ -150,26 +165,29 @@ Optionally, you can add it to a file called `.vscode/mcp.json` in your workspace
 
 ### Configuration Options
 
-The following command-line options are available:
+The application can be configured using environment variables:
 
-- `--docs` (space-separated list of URLs): URLs to documentation sites to include (required)
-- `--cache-ttl` (integer): Cache time-to-live in seconds (default: 3600)
-- `--user-agent` (string): Custom User-Agent string for HTTP requests
-- `--debug`: Enable debug logging
+- `DOCY_DOCUMENTATION_URLS` (string): Comma-separated list of URLs to documentation sites to include (e.g., "https://docs.python.org/3/,https://react.dev/")
+- `DOCY_CACHE_TTL` (integer): Cache time-to-live in seconds (default: 3600)
+- `DOCY_USER_AGENT` (string): Custom User-Agent string for HTTP requests
+- `DOCY_DEBUG` (boolean): Enable debug logging ("true", "1", "yes", or "y")
+- `DOCY_SKIP_CRAWL4AI_SETUP` (boolean): Skip running the crawl4ai-setup command at startup ("true", "1", "yes", or "y")
+
+Environment variables can be set directly or via a `.env` file.
 
 ## Debugging
 
 You can use the MCP inspector to debug the server. For uvx installations:
 
 ```
-npx @modelcontextprotocol/inspector uvx mcp-server-docy --docs https://docs.python.org/3/
+DOCY_DOCUMENTATION_URLS="https://docs.python.org/3/" npx @modelcontextprotocol/inspector uvx mcp-server-docy
 ```
 
 Or if you've installed the package in a specific directory or are developing on it:
 
 ```
 cd path/to/docy
-npx @modelcontextprotocol/inspector uv run mcp-server-docy --docs https://docs.python.org/3/
+DOCY_DOCUMENTATION_URLS="https://docs.python.org/3/" npx @modelcontextprotocol/inspector uv run mcp-server-docy
 ```
 
 ## Release Process

@@ -1,26 +1,16 @@
-from typing import Annotated, Dict, List, Optional
+from typing import Dict, List, Optional
 import json
-import httpx
 import asyncio
-import time
+import subprocess
+import sys
 from cachetools import TTLCache
 from functools import wraps
 from loguru import logger
-from mcp.shared.exceptions import McpError
-from mcp.server import Server
-from mcp.server.stdio import stdio_server
-from mcp.types import (
-    ErrorData,
-    GetPromptResult,
-    Prompt,
-    PromptArgument,
-    PromptMessage,
-    TextContent,
-    Tool,
-    INVALID_PARAMS,
-    INTERNAL_ERROR,
-)
-from pydantic import BaseModel, Field
+from dataclasses import dataclass
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from fastmcp import FastMCP, Context, Image
 from crawl4ai import AsyncWebCrawler
 
 # Remove default handler to allow configuration from __main__.py
@@ -31,12 +21,43 @@ SERVER_NAME = "Docy"
 SERVER_VERSION = "0.1.0"
 DEFAULT_USER_AGENT = f"ModelContextProtocol/1.0 {SERVER_NAME} (+https://github.com/modelcontextprotocol/servers)"
 
-# HTTP request cache (default ttl=1 hour, configurable)
-_http_cache = None  # Will be initialized in serve()
-_cache_lock = asyncio.Lock()
 
-# Store for documentation URLs (populated at startup)
-DOCUMENTATION_URLS = []
+class Settings(BaseSettings):
+    """Configuration settings for the Docy server."""
+    model_config = SettingsConfigDict(env_prefix="DOCY_", extra="ignore")
+
+    user_agent: str = Field(default=DEFAULT_USER_AGENT, description="Custom User-Agent string for HTTP requests")
+    documentation_urls_str: Optional[str] = Field(
+        default=None, 
+        alias="documentation_urls",
+        description="Comma-separated list of URLs to documentation sites to include"
+    )
+
+    cache_ttl: int = Field(default=3600, description="Cache time-to-live in seconds")
+    debug: bool = Field(default=False, description="Enable debug logging")
+    skip_crawl4ai_setup: bool = Field(default=False, description="Skip running crawl4ai-setup command at startup")
+    
+    @property
+    def documentation_urls(self) -> List[str]:
+        """Parse the comma-separated URLs into a list."""
+        # Add debug output to help diagnose environment variable issues
+        logger.debug(f"Documentation URLs string: '{self.documentation_urls_str}'")
+        
+        if not self.documentation_urls_str:
+            logger.warning("No documentation URLs provided via environment variables")
+            return []
+            
+        # Split by comma and strip whitespace from each URL
+        urls = [url.strip() for url in self.documentation_urls_str.split(',') if url.strip()]
+        logger.debug(f"Parsed {len(urls)} documentation URLs: {urls}")
+        return urls
+
+
+settings = Settings()
+
+# HTTP request cache (will be initialized in create_server)
+_http_cache = None
+_cache_lock = asyncio.Lock()
 
 
 def async_cached(cache):
@@ -72,12 +93,13 @@ def async_cached(cache):
     return decorator
 
 
-class DocumentationUrl(BaseModel):
-    """Parameters for accessing a documentation page by URL."""
-    url: Annotated[
-        str,
-        Field(description="The URL of the documentation page to access"),
-    ]
+# Create the FastMCP server
+mcp = FastMCP(
+    SERVER_NAME, 
+    version=SERVER_VERSION,
+    description="Documentation search and access functionality for LLMs",
+    dependencies=["crawl4ai", "cachetools", "loguru", "pydantic-settings"],
+)
 
 
 @async_cached(_http_cache)
@@ -89,245 +111,187 @@ async def fetch_documentation_content(url: str) -> Dict:
         async with AsyncWebCrawler() as crawler:
             result = await crawler.arun(url=url)
             
+            # Log the result for debugging
+            logger.debug(f"Crawler result for URL {url}: success={result.success}")
+            
+            # Extract markdown from the result
+            markdown_content = ""
+            if result.markdown:
+                # Check if markdown is a string or a MarkdownGenerationResult object
+                if isinstance(result.markdown, str):
+                    markdown_content = result.markdown
+                else:
+                    # If it's a MarkdownGenerationResult, use the appropriate field
+                    markdown_content = getattr(result.markdown, "markdown_with_citations", "") or \
+                                     getattr(result.markdown, "raw_markdown", "")
+            
+            # Get page title from metadata or use URL as fallback
+            title = ""
+            if result.metadata and isinstance(result.metadata, dict):
+                title = result.metadata.get("title", url.split("/")[-1] or "Documentation")
+            else:
+                title = url.split("/")[-1] or "Documentation"
+            
             # Return information about the documentation page
             return {
                 "url": url,
-                "title": result.title,
-                "markdown": result.markdown,
-                "links": result.links,
+                "title": title,
+                "markdown": markdown_content,
+                "links": result.links or {},
+                "success": result.success
             }
     except Exception as e:
         logger.error(f"Failed to fetch documentation page content from {url}: {str(e)}")
-        raise McpError(
-            ErrorData(
-                code=INTERNAL_ERROR,
-                message=f"Failed to fetch documentation content: {str(e)}",
-            )
-        )
+        raise ValueError(f"Failed to fetch documentation content: {str(e)}")
 
 
-def list_documentation_sources() -> List[Dict]:
+@mcp.resource("documentation://{url}")
+async def get_documentation(url: str) -> str:
+    """Get documentation content for a specific URL."""
+    logger.info(f"Resource request for documentation URL: {url}")
+    result = await fetch_documentation_content(url)
+    
+    if not result.get('success', True):
+        return f"# Failed to load content from {url}\n\nUnable to retrieve documentation content. Please verify the URL is valid and accessible."
+    
+    title = result.get('title', 'Documentation')
+    markdown = result.get('markdown', '')
+    
+    return f"# {title}\n\n{markdown}"
+
+
+@mcp.resource("documentation://sources")
+def list_documentation_sources() -> str:
     """List all configured documentation sources."""
-    logger.info(f"Listing all {len(DOCUMENTATION_URLS)} documentation sources")
+    logger.info("Listing all documentation sources")
+    
+    # Access the configuration via settings
+    documentation_urls = settings.documentation_urls
     
     results = []
-    for url in DOCUMENTATION_URLS:
+    for url in documentation_urls:
         results.append({
             "url": url,
             "type": "web",
             "description": "Web-based documentation"
         })
     
-    return results
+    return f"Available documentation sources:\n{json.dumps(results, indent=2)}"
 
 
-async def serve(
-    custom_user_agent: str | None = None,
-    documentation_urls: List[str] | None = None,
-    cache_ttl: int = 3600,
-) -> None:
-    """Run the documentation MCP server.
-
-    Args:
-        custom_user_agent: Optional custom User-Agent string to use for requests
-        documentation_urls: List of documentation site URLs to include
-        cache_ttl: Cache time-to-live in seconds (default: 3600)
+@mcp.tool()
+def list_documentation_sources_tool() -> str:
+    """List all available documentation sources this service has access to.
+    
+    This tool requires no input parameters and returns a list of documentation sources configured for this service.
+    Use this tool first to discover what documentation sources are available.
+    
+    Example usage:
+    ```
+    list_documentation_sources_tool()
+    ```
+    
+    Response provides the URLs to documentation sources and their types.
     """
-    logger.info("Starting mcp-docy server")
-
-    global DEFAULT_USER_AGENT, DOCUMENTATION_URLS, _http_cache
+    # Access the configuration via settings
+    documentation_urls = settings.documentation_urls
+    logger.info(f"Tool call: listing {len(documentation_urls)} documentation sources")
     
-    # Initialize cache with provided TTL
-    _http_cache = TTLCache(maxsize=500, ttl=cache_ttl)
-    logger.info(f"Initialized HTTP cache with TTL: {cache_ttl}s")
+    results = []
+    for url in documentation_urls:
+        results.append({
+            "url": url,
+            "type": "web",
+            "description": "Web-based documentation"
+        })
     
-    if custom_user_agent:
-        logger.info(f"Using custom User-Agent: {custom_user_agent}")
-        DEFAULT_USER_AGENT = custom_user_agent
+    return f"Available documentation sources:\n{json.dumps(results, indent=2)}"
+
+
+@mcp.tool()
+async def fetch_documentation_page(url: str) -> str:
+    """Fetch the content of a documentation page by URL as markdown.
     
-    # Store documentation URLs
-    if documentation_urls:
-        DOCUMENTATION_URLS = documentation_urls
-        logger.info(f"Configured {len(DOCUMENTATION_URLS)} documentation sources")
-    else:
-        logger.warning("No documentation URLs provided. The server will have no content to serve.")
-        DOCUMENTATION_URLS = []
-
-    server = Server("mcp-docy")
-    logger.info("MCP Server initialized")
-
-    @server.list_tools()
-    async def list_tools() -> list[Tool]:
-        return [
-            Tool(
-                name="list_documentation_sources",
-                description="""List all available documentation sources this service has access to.
-                
-This tool requires no input parameters and returns a list of documentation sources configured for this service.
-Use this tool first to discover what documentation sources are available.
-
-Example usage:
-```
-list_documentation_sources()
-```
-
-Response provides the URLs to documentation sources and their types.""",
-                inputSchema={},  # No input needed
-            ),
-            Tool(
-                name="fetch_documentation_page",
-                description="""Fetch the content of a documentation page by URL as markdown.
-                
-This tool retrieves the full content from a documentation page at the specified URL and returns it as markdown.
-The markdown format preserves headings, links, lists, and other formatting from the original documentation.
-
-Example usage:
-```
-fetch_documentation_page(url="https://example.com/documentation/page")
-```
-
-Response includes the full markdown content of the page along with metadata like title and links.""",
-                inputSchema=DocumentationUrl.model_json_schema(),
-            ),
-        ]
-
-    @server.call_tool()
-    async def call_tool(name: str, arguments: dict) -> list[TextContent]:
-        logger.info(f"Tool call: {name} with arguments: {arguments}")
-
-        if name == "list_documentation_sources":
-            logger.info("Listing documentation sources")
-            results = list_documentation_sources()
-            logger.info(f"Found {len(results)} documentation sources")
-            return [
-                TextContent(
-                    type="text",
-                    text=f"Available documentation sources:\n{json.dumps(results, indent=2)}",
-                )
-            ]
-
-        elif name == "fetch_documentation_page":
-            try:
-                args = DocumentationUrl(**arguments)
-                logger.debug(f"Validated documentation URL args: {args}")
-            except ValueError as e:
-                logger.error(f"Invalid documentation URL parameters: {str(e)}")
-                raise McpError(ErrorData(code=INVALID_PARAMS, message=str(e)))
-
-            logger.info(f"Fetching documentation page content for URL: {args.url}")
-            result = await fetch_documentation_content(args.url)
-            logger.info(f"Successfully fetched documentation page content")
-            return [
-                TextContent(
-                    type="text",
-                    text=f"# {result['title']}\n\n{result['markdown']}",
-                )
-            ]
-
-        logger.error(f"Unknown tool: {name}")
-        raise McpError(ErrorData(code=INVALID_PARAMS, message=f"Unknown tool: {name}"))
-
-    @server.list_prompts()
-    async def list_prompts() -> list[Prompt]:
-        return [
-            Prompt(
-                name="list_documentation_sources",
-                description="List all available documentation sources with their URLs and types",
-                arguments=[],  # No arguments needed
-            ),
-            Prompt(
-                name="fetch_documentation_page",
-                description="Fetch the full content of a documentation page at a specific URL as markdown",
-                arguments=[
-                    PromptArgument(
-                        name="url",
-                        description="The complete URL of the documentation page to access",
-                        required=True,
-                    )
-                ],
-            ),
-        ]
-
-    @server.get_prompt()
-    async def get_prompt(name: str, arguments: dict | None) -> GetPromptResult:
-        logger.info(f"Prompt request: {name} with arguments: {arguments}")
-
-        if name == "list_documentation_sources":
-            logger.info("Getting list_documentation_sources prompt")
-            try:
-                results = list_documentation_sources()
-                logger.info(f"Found {len(results)} documentation sources")
-                return GetPromptResult(
-                    description="List of available documentation sources",
-                    messages=[
-                        PromptMessage(
-                            role="user",
-                            content=TextContent(
-                                type="text",
-                                text=f"Available documentation sources:\n{json.dumps(results, indent=2)}",
-                            ),
-                        )
-                    ],
-                )
-            except McpError as e:
-                logger.error(f"Error generating list_documentation_sources prompt: {str(e)}")
-                return GetPromptResult(
-                    description="Failed to list documentation sources",
-                    messages=[
-                        PromptMessage(
-                            role="user", content=TextContent(type="text", text=str(e))
-                        )
-                    ],
-                )
-
-        elif name == "fetch_documentation_page":
-            if not arguments or "url" not in arguments:
-                logger.error("Missing required 'url' parameter for fetch_documentation_page prompt")
-                raise McpError(
-                    ErrorData(code=INVALID_PARAMS, message="Documentation page URL is required")
-                )
-                
-            url = arguments["url"]
-            logger.info(f"Fetching documentation page content for URL: {url}")
-
-            try:
-                result = await fetch_documentation_content(url)
-                logger.info(f"Successfully fetched content for URL: {url}")
-                return GetPromptResult(
-                    description=f"Documentation content for {result['title']}",
-                    messages=[
-                        PromptMessage(
-                            role="user",
-                            content=TextContent(
-                                type="text",
-                                text=f"# {result['title']}\n\n{result['markdown']}",
-                            ),
-                        )
-                    ],
-                )
-            except McpError as e:
-                logger.error(f"Error generating fetch_documentation_page prompt: {str(e)}")
-                return GetPromptResult(
-                    description=f"Failed to fetch content from URL: {url}",
-                    messages=[
-                        PromptMessage(
-                            role="user", content=TextContent(type="text", text=str(e))
-                        )
-                    ],
-                )
-
-        raise McpError(
-            ErrorData(code=INVALID_PARAMS, message=f"Unknown prompt: {name}")
-        )
-
-    options = server.create_initialization_options()
-    logger.info("Starting server with stdio transport")
+    This tool retrieves the full content from a documentation page at the specified URL and returns it as markdown.
+    The markdown format preserves headings, links, lists, and other formatting from the original documentation.
+    
+    Example usage:
+    ```
+    fetch_documentation_page(url="https://example.com/documentation/page")
+    ```
+    
+    Response includes the full markdown content of the page along with metadata like title and links.
+    """
+    logger.info(f"Tool call: fetching documentation page content for URL: {url}")
+    
     try:
-        async with stdio_server() as (read_stream, write_stream):
-            logger.info("Server ready to accept connections")
-            await server.run(read_stream, write_stream, options, raise_exceptions=True)
+        result = await fetch_documentation_content(url)
+        logger.info(f"Successfully fetched documentation page content")
+        
+        if not result.get('success', True):
+            return f"# Failed to load content from {url}\n\nUnable to retrieve documentation content. Please verify the URL is valid and accessible."
+        
+        title = result.get('title', 'Documentation')
+        markdown = result.get('markdown', '')
+        
+        return f"# {title}\n\n{markdown}"
     except Exception as e:
-        logger.error(f"Server encountered an error: {str(e)}")
+        logger.error(f"Error fetching documentation page: {str(e)}")
         raise
-    finally:
-        logger.info("Server shutdown complete")
+
+
+@mcp.prompt()
+def documentation_sources() -> str:
+    """List all available documentation sources with their URLs and types"""
+    return "Please list all documentation sources available through this server."
+
+
+@mcp.prompt()
+def documentation_page(url: str) -> str:
+    """Fetch the full content of a documentation page at a specific URL as markdown"""
+    return f"Please provide the full documentation content from the following URL: {url}"
+
+
+def ensure_crawl4ai_setup():
+    """Ensure that crawl4ai is properly set up by running the crawl4ai-setup command."""
+    if settings.skip_crawl4ai_setup:
+        logger.info("Skipping crawl4ai setup (DOCY_SKIP_CRAWL4AI_SETUP=true)")
+        return
+        
+    logger.info("Ensuring crawl4ai is properly set up...")
+    try:
+        result = subprocess.run(
+            ["crawl4ai-setup"],
+            capture_output=True,
+            text=True,
+            check=False
+        )
+        
+        if result.returncode != 0:
+            logger.warning(f"crawl4ai-setup exited with code {result.returncode}")
+            logger.warning(f"STDERR: {result.stderr}")
+            logger.warning("crawl4ai setup might be incomplete, but we'll try to continue anyway")
+        else:
+            logger.info("crawl4ai setup completed successfully")
+            
+    except FileNotFoundError:
+        logger.error("crawl4ai-setup command not found. Some functionality may be limited.")
+    except Exception as e:
+        logger.error(f"Error running crawl4ai-setup: {str(e)}")
+        logger.warning("Continuing despite setup failure, but functionality may be limited")
+
+
+def create_server() -> FastMCP:
+    """Create and configure the MCP server instance."""
+    global _http_cache
+    
+    # Initialize the HTTP cache
+    _http_cache = TTLCache(maxsize=500, ttl=settings.cache_ttl)
+    
+    # Ensure crawl4ai is properly set up
+    ensure_crawl4ai_setup()
+    
+    logger.info(f"Created MCP server with name: {SERVER_NAME}")
+    logger.info(f"Configured with {len(settings.documentation_urls)} documentation URLs and cache TTL: {settings.cache_ttl}s")
+    
+    return mcp

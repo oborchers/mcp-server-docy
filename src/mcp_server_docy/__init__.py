@@ -1,34 +1,14 @@
 import sys
-import asyncio
-import argparse
 from loguru import logger
-from .server import serve
+from .server import create_server, settings, mcp
+
+__version__ = "0.1.0"
 
 
 def main():
     """MCP Docy Server - Documentation search and access functionality for MCP"""
-    parser = argparse.ArgumentParser(
-        description="give a model the ability to access and query documentation"
-    )
-    parser.add_argument("--user-agent", type=str, help="Custom User-Agent string")
-    parser.add_argument("--debug", action="store_true", help="Enable debug logging")
-    parser.add_argument(
-        "--documentation", 
-        type=str, 
-        nargs="+", 
-        help="URLs to documentation sites to include (can specify multiple)"
-    )
-    parser.add_argument(
-        "--cache-ttl",
-        type=int,
-        default=3600,
-        help="Cache time-to-live in seconds (default: 3600)"
-    )
-
-    args = parser.parse_args()
-
-    # Configure logging level based on arguments
-    log_level = "DEBUG" if args.debug else "INFO"
+    # Configure logging level based on settings
+    log_level = "DEBUG" if settings.debug else "INFO"
     logger.configure(
         handlers=[
             {
@@ -38,11 +18,27 @@ def main():
             }
         ]
     )
+    
+    # Log environment variables for debugging
+    logger.debug(f"Environment configuration:")
+    logger.debug(f"  DOCY_DEBUG: {settings.debug}")
+    logger.debug(f"  DOCY_CACHE_TTL: {settings.cache_ttl}")
+    logger.debug(f"  DOCY_USER_AGENT: {settings.user_agent}")
+    logger.debug(f"  DOCY_DOCUMENTATION_URLS: {settings.documentation_urls_str}")
 
     logger.info(f"Starting mcp-docy server with logging level: {log_level}")
+    
+    if settings.documentation_urls:
+        logger.info(f"Documentation URLs: {', '.join(settings.documentation_urls)}")
+    else:
+        logger.warning("No documentation URLs provided. The server will have no content to serve.")
+
+    # Create and configure the server
+    server = create_server()
 
     try:
-        asyncio.run(serve(args.user_agent, args.documentation, args.cache_ttl))
+        # Run the server with the FastMCP's built-in runner
+        server.run()
     except KeyboardInterrupt:
         logger.info("Server interrupted by keyboard interrupt")
     except Exception as e:
