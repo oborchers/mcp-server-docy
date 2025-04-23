@@ -1,5 +1,7 @@
 ![Docy Logo](media/logo.png)
 
+> **Note**: Claude may default to using its built-in WebFetchTool instead of Docy. To explicitly request Docy's functionality, use a callout like: "Please use Docy to find..."
+
 # Docy MCP Server
 
 A Model Context Protocol server that provides documentation access capabilities. This server enables LLMs to search and retrieve content from documentation websites by scraping them with crawl4ai. Built with FastMCP v2.
