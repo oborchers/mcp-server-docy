@@ -21,10 +21,10 @@ def setup():
     
     # Log environment variables for debugging
     logger.debug(f"Environment configuration:")
-    logger.debug(f"  DOCY_DEBUG: {settings.debug}")
-    logger.debug(f"  DOCY_CACHE_TTL: {settings.cache_ttl}")
-    logger.debug(f"  DOCY_USER_AGENT: {settings.user_agent}")
-    logger.debug(f"  DOCY_DOCUMENTATION_URLS: {settings.documentation_urls_str}")
+    logger.debug(f"  docy_debug: {settings.debug}")
+    logger.debug(f"  docy_cache_ttl: {settings.cache_ttl}")
+    logger.debug(f"  docy_user_agent: {settings.user_agent}")
+    logger.debug(f"  docy_documentation_urls: {settings.documentation_urls_str}")
 
     logger.info(f"Starting mcp-docy server with logging level: {log_level}")
     

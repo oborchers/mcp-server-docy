@@ -24,18 +24,36 @@ DEFAULT_USER_AGENT = f"ModelContextProtocol/1.0 {SERVER_NAME} (+https://github.c
 
 class Settings(BaseSettings):
     """Configuration settings for the Docy server."""
-    model_config = SettingsConfigDict(env_prefix="DOCY_", extra="ignore")
+    model_config = SettingsConfigDict(extra="ignore", env_file=".env")
 
-    user_agent: str = Field(default=DEFAULT_USER_AGENT, description="Custom User-Agent string for HTTP requests")
-    documentation_urls_str: Optional[str] = Field(
+    docy_user_agent: str = Field(default=DEFAULT_USER_AGENT, description="Custom User-Agent string for HTTP requests")
+    docy_documentation_urls: Optional[str] = Field(
         default=None, 
-        alias="documentation_urls",
         description="Comma-separated list of URLs to documentation sites to include"
     )
-
-    cache_ttl: int = Field(default=3600, description="Cache time-to-live in seconds")
-    debug: bool = Field(default=False, description="Enable debug logging")
-    skip_crawl4ai_setup: bool = Field(default=False, description="Skip running crawl4ai-setup command at startup")
+    docy_cache_ttl: int = Field(default=3600, description="Cache time-to-live in seconds")
+    docy_debug: bool = Field(default=False, description="Enable debug logging")
+    docy_skip_crawl4ai_setup: bool = Field(default=False, description="Skip running crawl4ai-setup command at startup")
+    
+    @property
+    def user_agent(self) -> str:
+        return self.docy_user_agent
+    
+    @property
+    def cache_ttl(self) -> int:
+        return self.docy_cache_ttl
+    
+    @property
+    def debug(self) -> bool:
+        return self.docy_debug
+    
+    @property
+    def skip_crawl4ai_setup(self) -> bool:
+        return self.docy_skip_crawl4ai_setup
+        
+    @property
+    def documentation_urls_str(self) -> Optional[str]:
+        return self.docy_documentation_urls
     
     @property
     def documentation_urls(self) -> List[str]:
@@ -255,7 +273,7 @@ def documentation_page(url: str) -> str:
 def ensure_crawl4ai_setup():
     """Ensure that crawl4ai is properly set up by running the crawl4ai-setup command."""
     if settings.skip_crawl4ai_setup:
-        logger.info("Skipping crawl4ai setup (DOCY_SKIP_CRAWL4AI_SETUP=true)")
+        logger.info("Skipping crawl4ai setup (docy_skip_crawl4ai_setup=true)")
         return
         
     logger.info("Ensuring crawl4ai is properly set up...")
