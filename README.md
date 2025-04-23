@@ -1,3 +1,5 @@
+![Docy Logo](media/logo.png)
+
 # Docy MCP Server
 
 A Model Context Protocol server that provides documentation access capabilities. This server enables LLMs to search and retrieve content from documentation websites by scraping them with crawl4ai. Built with FastMCP v2.
