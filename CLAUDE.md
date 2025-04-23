@@ -10,12 +10,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Format code: `uv run ruff format ./src/`
 - Type check: `uv run pyright ./src/`
 - Build package: `uv run build`
+- Publish package: `uv run twine upload dist/*`
 
 ## Code Style
 - Use double quotes for strings
-- Sort imports with standard library first, then third-party, then local
-- Type hints required for function parameters and return values
+- Sort imports: 1) standard library, 2) third-party, 3) local
+- Type hints required for all function parameters and return values
 - Use snake_case for variables and functions, PascalCase for classes
-- Include docstrings for all modules, classes, and functions
+- Include detailed docstrings for all modules, classes, and functions
 - Handle exceptions with proper error logging using loguru
-- Structure: 1) imports, 2) constants, 3) classes, 4) functions, 5) main code
+- Structure code as: 1) imports, 2) constants, 3) classes, 4) functions, 5) main code
+- Use async/await patterns consistently for asynchronous operations
+- Use descriptive variable names that indicate purpose and type
+- For cached operations, use the @async_cached decorator
+- Always validate environment variables and provide clear error messages
