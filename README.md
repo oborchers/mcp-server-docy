@@ -134,7 +134,7 @@ Optionally, you can add it to a file called `.vscode/mcp.json` in your workspace
         "command": "uvx",
         "args": ["mcp-server-docy"],
         "env": {
-          "DOCY_DOCUMENTATION_URLS": "https://docs.python.org/3/,https://react.dev/"
+          "DOCY_DOCUMENTATION_URLS": "https://docs.crawl4ai.com/,https://react.dev/"
         }
       }
     }

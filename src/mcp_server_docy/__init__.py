@@ -1,11 +1,11 @@
 import sys
 from loguru import logger
-from .server import create_server, settings, mcp
+from .server import create_server, settings
 
+__all__ = ["settings"]
 __version__ = "0.1.0"
 
-
-def main():
+def setup():
     """MCP Docy Server - Documentation search and access functionality for MCP"""
     # Configure logging level based on settings
     log_level = "DEBUG" if settings.debug else "INFO"
@@ -35,18 +35,4 @@ def main():
 
     # Create and configure the server
     server = create_server()
-
-    try:
-        # Run the server with the FastMCP's built-in runner
-        server.run()
-    except KeyboardInterrupt:
-        logger.info("Server interrupted by keyboard interrupt")
-    except Exception as e:
-        logger.exception(f"Server failed with error: {str(e)}")
-        sys.exit(1)
-    finally:
-        logger.info("Server shutdown complete")
-
-
-if __name__ == "__main__":
-    main()
+    return server 
