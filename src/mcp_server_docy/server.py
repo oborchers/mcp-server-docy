@@ -2,7 +2,6 @@ from typing import Dict, List, Optional
 import json
 import asyncio
 import subprocess
-from cachetools import TTLCache
 from functools import wraps
 from loguru import logger
 from pydantic import Field
@@ -10,6 +9,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from fastmcp import FastMCP
 from crawl4ai import AsyncWebCrawler
+from aiocache import SimpleMemoryCache
 
 # Remove default handler to allow configuration from __main__.py
 logger.remove()
@@ -71,42 +71,44 @@ class Settings(BaseSettings):
 
 settings = Settings()
 
-# HTTP request cache (will be initialized in create_server)
-_http_cache = None
-_cache_lock = asyncio.Lock()
+# Cache for HTTP requests (will be initialized in create_server)
+cache = None
 
 
-def async_cached(cache):
-    """Decorator to cache results of async functions."""
-    def decorator(func):
-        @wraps(func)
-        async def wrapper(*args, **kwargs):
-            # Create a cache key from the function name and arguments
-            key = str(args) + str(kwargs)
+def async_cached(func):
+    """Decorator to cache results of async functions using aiocache."""
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        global cache
+        
+        if cache is None:
+            logger.warning("Cache not initialized, skipping caching")
+            return await func(*args, **kwargs)
+        
+        # Create a cache key from the function name and arguments
+        key = f"{func.__name__}:{str(args)}:{str(kwargs)}"
+        
+        # Try to get the result from cache
+        cached_result = await cache.get(key)
+        if cached_result is not None:
+            logger.info(f"Cache HIT for {func.__name__}")
+            return cached_result
+        
+        logger.info(f"Cache MISS for {func.__name__}")
+        
+        # Call the original function
+        try:
+            result = await func(*args, **kwargs)
             
-            # Check if the result is already in the cache
-            if cache and key in cache:
-                logger.info(f"Cache HIT for {func.__name__}")
-                return cache[key]
-                
-            logger.info(f"Cache MISS for {func.__name__}")
+            # Store the result in cache
+            await cache.set(key, result, ttl=settings.cache_ttl)
             
-            # Call the original function
-            try:
-                result = await func(*args, **kwargs)
-                
-                # Update the cache with the result (with lock to avoid race conditions)
-                if cache:
-                    async with _cache_lock:
-                        cache[key] = result
-                
-                return result
-            except Exception as e:
-                logger.error(f"Error executing {func.__name__}: {str(e)}")
-                raise
-                
-        return wrapper
-    return decorator
+            return result
+        except Exception as e:
+            logger.error(f"Error executing {func.__name__}: {str(e)}")
+            raise
+    
+    return wrapper
 
 
 # Create the FastMCP server
@@ -114,11 +116,11 @@ mcp = FastMCP(
     SERVER_NAME, 
     version=SERVER_VERSION,
     description="Documentation search and access functionality for LLMs",
-    dependencies=["crawl4ai", "cachetools", "loguru", "pydantic-settings"],
+    dependencies=["crawl4ai", "aiocache", "loguru", "pydantic-settings"],
 )
 
 
-@async_cached(_http_cache)
+@async_cached
 async def fetch_documentation_content(url: str) -> Dict:
     """Fetch the content of a documentation page by direct URL."""
     logger.info(f"Fetching documentation page content from {url}")
@@ -299,10 +301,10 @@ def ensure_crawl4ai_setup():
 
 def create_server() -> FastMCP:
     """Create and configure the MCP server instance."""
-    global _http_cache
+    global cache
     
-    # Initialize the HTTP cache
-    _http_cache = TTLCache(maxsize=500, ttl=settings.cache_ttl)
+    # Initialize the aiocache SimpleMemoryCache
+    cache = SimpleMemoryCache()
     
     # Ensure crawl4ai is properly set up
     ensure_crawl4ai_setup()
