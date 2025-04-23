@@ -21,7 +21,7 @@ dependencies = [
     "pydantic-settings>=2.0.0",
     "cachetools>=5.3.0",
     "loguru>=0.7.3",
-    "crawl4ai>=0.5.0.post8",
+    "crawl4ai>=0.6.0rc1",
 ]
 
 [project.scripts]

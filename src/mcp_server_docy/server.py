@@ -2,15 +2,13 @@ from typing import Dict, List, Optional
 import json
 import asyncio
 import subprocess
-import sys
 from cachetools import TTLCache
 from functools import wraps
 from loguru import logger
-from dataclasses import dataclass
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from fastmcp import FastMCP, Context, Image
+from fastmcp import FastMCP
 from crawl4ai import AsyncWebCrawler
 
 # Remove default handler to allow configuration from __main__.py
