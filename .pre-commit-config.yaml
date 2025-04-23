@@ -1,0 +1,15 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.11.6
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+
+  - repo: local
+    hooks:
+      - id: tests
+        name: docy tests
+        entry: bash -c 'uv run pytest -xvs tests/'
+        language: system
+        pass_filenames: false

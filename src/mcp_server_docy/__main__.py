@@ -3,6 +3,7 @@ from mcp_server_docy import setup
 
 mcp = setup()
 
+
 def main():
     mcp.run()
 

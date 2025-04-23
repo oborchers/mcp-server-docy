@@ -3,7 +3,7 @@ from loguru import logger
 from .server import create_server, settings
 
 __all__ = ["settings"]
-__version__ = "0.1.0"
+
 
 def setup():
     """MCP Docy Server - Documentation search and access functionality for MCP"""
@@ -18,21 +18,23 @@ def setup():
             }
         ]
     )
-    
+
     # Log environment variables for debugging
-    logger.debug(f"Environment configuration:")
+    logger.debug("Environment configuration:")
     logger.debug(f"  docy_debug: {settings.debug}")
     logger.debug(f"  docy_cache_ttl: {settings.cache_ttl}")
     logger.debug(f"  docy_user_agent: {settings.user_agent}")
     logger.debug(f"  docy_documentation_urls: {settings.documentation_urls_str}")
 
     logger.info(f"Starting mcp-docy server with logging level: {log_level}")
-    
+
     if settings.documentation_urls:
         logger.info(f"Documentation URLs: {', '.join(settings.documentation_urls)}")
     else:
-        logger.warning("No documentation URLs provided. The server will have no content to serve.")
+        logger.warning(
+            "No documentation URLs provided. The server will have no content to serve."
+        )
 
     # Create and configure the server
     server = create_server()
-    return server 
+    return server
