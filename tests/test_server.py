@@ -1,4 +1,3 @@
-import pytest
 from mcp_server_docy.server import Settings, SERVER_NAME, SERVER_VERSION
 
 
