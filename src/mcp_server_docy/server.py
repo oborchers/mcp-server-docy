@@ -17,7 +17,7 @@ logger.remove()
 
 # Server metadata
 SERVER_NAME = "Docy"
-SERVER_VERSION = "0.1.0"
+SERVER_VERSION = "0.3.0"
 DEFAULT_USER_AGENT = f"ModelContextProtocol/1.0 {SERVER_NAME} (+https://github.com/modelcontextprotocol/servers)"
 
 
@@ -39,7 +39,7 @@ class Settings(BaseSettings):
         description="Path to a file containing documentation URLs (one per line)",
     )
     docy_cache_ttl: int = Field(
-        default=3600, description="Cache time-to-live in seconds"
+        default=432000, description="Cache time-to-live in seconds"
     )
     docy_cache_directory: str = Field(
         default=".docy.cache", description="Path to the cache directory"
@@ -195,7 +195,6 @@ mcp = FastMCP(
 )
 
 
-@async_cached
 async def fetch_documentation_content(url: str) -> Dict:
     """Fetch the content of a documentation page by direct URL."""
     logger.info(f"Fetching documentation page content from {url}")
@@ -212,12 +211,13 @@ async def fetch_documentation_content(url: str) -> Dict:
             if result.markdown:
                 # Check if markdown is a string or a MarkdownGenerationResult object
                 if isinstance(result.markdown, str):
-                    markdown_content = result.markdown
+                    markdown_content = str(result.markdown)
                 else:
                     # If it's a MarkdownGenerationResult, use the appropriate field
-                    markdown_content = getattr(
-                        result.markdown, "markdown_with_citations", ""
-                    ) or getattr(result.markdown, "raw_markdown", "")
+                    markdown_content = str(
+                        getattr(result.markdown, "markdown_with_citations", "")
+                        or getattr(result.markdown, "raw_markdown", "")
+                    )
 
             # Get page title from metadata or use URL as fallback
             title = ""
@@ -239,6 +239,13 @@ async def fetch_documentation_content(url: str) -> Dict:
     except Exception as e:
         logger.error(f"Failed to fetch documentation page content from {url}: {str(e)}")
         raise ValueError(f"Failed to fetch documentation content: {str(e)}")
+
+
+# Apply caching to the fetch_documentation_content function
+@async_cached
+async def cached_fetch_documentation_content(url: str) -> Dict:
+    """Cached version of fetch_documentation_content."""
+    return await fetch_documentation_content(url)
 
 
 @mcp.resource("documentation://sources")
@@ -306,7 +313,7 @@ async def fetch_documentation_page(url: str) -> str:
         url = f"https://{url}"
 
     try:
-        result = await fetch_documentation_content(url)
+        result = await cached_fetch_documentation_content(url)
         logger.info("Successfully fetched documentation page content")
 
         if not result.get("success", True):
@@ -358,7 +365,7 @@ async def fetch_document_links(url: str) -> str:
         url = f"https://{url}"
 
     try:
-        result = await fetch_documentation_content(url)
+        result = await cached_fetch_documentation_content(url)
         logger.info("Successfully fetched links from documentation page")
 
         if not result.get("success", True):
@@ -446,7 +453,7 @@ async def cache_documentation_urls():
     for url in docs_urls:
         try:
             logger.info(f"Pre-caching documentation URL: {url}")
-            await fetch_documentation_content(url)
+            await cached_fetch_documentation_content(url)
             logger.info(f"Successfully cached content from {url}")
         except Exception as e:
             logger.error(f"Failed to cache documentation URL {url}: {str(e)}")
