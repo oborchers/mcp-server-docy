@@ -21,7 +21,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Local Development
 - Run in development mode: `fastmcp dev src/mcp_server_docy/__main__.py --with-editable .`
 - Access API at: `http://127.0.0.1:6274`
-- Run with MCP inspector: `uv run --with fastmcp --with-editable /Users/oliverborchers/Desktop/Code.nosync/mcp-server-docy --with crawl4ai --with loguru --with aiocache --with pydantic-settings fastmcp run src/mcp_server_docy/__main__.py`
+- Run with MCP inspector: `uv run --with fastmcp --with-editable /Users/oliverborchers/Desktop/Code.nosync/mcp-server-docy --with crawl4ai --with loguru --with diskcache --with pydantic-settings fastmcp run src/mcp_server_docy/__main__.py`
 
 ## Code Style
 - Use double quotes for strings
