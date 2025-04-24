@@ -200,12 +200,31 @@ Optionally, you can add it to a file called `.vscode/mcp.json` in your workspace
 The application can be configured using environment variables:
 
 - `DOCY_DOCUMENTATION_URLS` (string): Comma-separated list of URLs to documentation sites to include (e.g., "https://docs.crawl4ai.com/,https://react.dev/")
+- `DOCY_DOCUMENTATION_URLS_FILE` (string): Path to a file containing documentation URLs, one per line (default: ".docy.urls")
 - `DOCY_CACHE_TTL` (integer): Cache time-to-live in seconds (default: 3600)
 - `DOCY_USER_AGENT` (string): Custom User-Agent string for HTTP requests
 - `DOCY_DEBUG` (boolean): Enable debug logging ("true", "1", "yes", or "y")
 - `DOCY_SKIP_CRAWL4AI_SETUP` (boolean): Skip running the crawl4ai-setup command at startup ("true", "1", "yes", or "y")
 
 Environment variables can be set directly or via a `.env` file.
+
+### URL Configuration File
+
+As an alternative to setting the `DOCY_DOCUMENTATION_URLS` environment variable, you can create a `.docy.urls` file in your project directory with one URL per line:
+
+```
+https://docs.crawl4ai.com/
+https://react.dev/
+# Lines starting with # are treated as comments
+https://docs.python.org/3/
+```
+
+This approach is especially useful for:
+- Projects where you want to share documentation sources with your team
+- Repositories where storing URLs in version control is beneficial
+- Situations where you want to avoid long environment variable values
+
+The server will first check for URLs in the `DOCY_DOCUMENTATION_URLS` environment variable, and if none are found, it will look for the `.docy.urls` file.
 
 ### Caching Behavior
 

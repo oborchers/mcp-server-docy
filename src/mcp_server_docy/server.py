@@ -33,6 +33,10 @@ class Settings(BaseSettings):
         default=None,
         description="Comma-separated list of URLs to documentation sites to include",
     )
+    docy_documentation_urls_file: Optional[str] = Field(
+        default=".docy.urls",
+        description="Path to a file containing documentation URLs (one per line)",
+    )
     docy_cache_ttl: int = Field(
         default=3600, description="Cache time-to-live in seconds"
     )
@@ -62,21 +66,73 @@ class Settings(BaseSettings):
         return self.docy_documentation_urls
 
     @property
+    def documentation_urls_file_path(self) -> Optional[str]:
+        return self.docy_documentation_urls_file
+
+    def _read_urls_from_file(self) -> List[str]:
+        """Read URLs from a file, one per line."""
+        import os
+
+        if not self.documentation_urls_file_path:
+            return []
+
+        try:
+            if not os.path.exists(self.documentation_urls_file_path):
+                logger.debug(
+                    f"URLs file not found: {self.documentation_urls_file_path}"
+                )
+                return []
+
+            with open(self.documentation_urls_file_path, "r") as f:
+                lines = f.readlines()
+
+            # Filter out empty lines and comments, strip whitespace
+            urls = [
+                line.strip()
+                for line in lines
+                if line.strip() and not line.strip().startswith("#")
+            ]
+
+            logger.debug(
+                f"Read {len(urls)} URLs from file: {self.documentation_urls_file_path}"
+            )
+            return urls
+
+        except Exception as e:
+            logger.error(
+                f"Error reading URLs file {self.documentation_urls_file_path}: {str(e)}"
+            )
+            return []
+
+    @property
     def documentation_urls(self) -> List[str]:
-        """Parse the comma-separated URLs into a list."""
+        """Parse the comma-separated URLs into a list, or read from file if no env var provided."""
         # Add debug output to help diagnose environment variable issues
         logger.debug(f"Documentation URLs string: '{self.documentation_urls_str}'")
 
-        if not self.documentation_urls_str:
-            logger.warning("No documentation URLs provided via environment variables")
-            return []
+        # First try to get URLs from environment variable
+        if self.documentation_urls_str:
+            # Split by comma and strip whitespace from each URL
+            urls = [
+                url.strip()
+                for url in self.documentation_urls_str.split(",")
+                if url.strip()
+            ]
+            logger.debug(
+                f"Parsed {len(urls)} documentation URLs from environment variable: {urls}"
+            )
+            return urls
 
-        # Split by comma and strip whitespace from each URL
-        urls = [
-            url.strip() for url in self.documentation_urls_str.split(",") if url.strip()
-        ]
-        logger.debug(f"Parsed {len(urls)} documentation URLs: {urls}")
-        return urls
+        # If no URLs in env var, try to read from file
+        urls = self._read_urls_from_file()
+        if urls:
+            return urls
+
+        # No URLs found anywhere
+        logger.warning(
+            "No documentation URLs provided (neither via environment variable nor file)"
+        )
+        return []
 
 
 settings = Settings()
