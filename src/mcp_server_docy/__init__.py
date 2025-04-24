@@ -23,6 +23,7 @@ def setup():
     logger.debug("Environment configuration:")
     logger.debug(f"  docy_debug: {settings.debug}")
     logger.debug(f"  docy_cache_ttl: {settings.cache_ttl}")
+    logger.debug(f"  docy_cache_directory: {settings.cache_directory}")
     logger.debug(f"  docy_user_agent: {settings.user_agent}")
     logger.debug(f"  docy_documentation_urls: {settings.documentation_urls_str}")
     logger.debug(

@@ -1,5 +1,6 @@
 from typing import Dict, List, Optional
 import json
+import os
 import subprocess
 import asyncio
 from functools import wraps
@@ -9,7 +10,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from fastmcp import FastMCP
 from crawl4ai import AsyncWebCrawler
-from aiocache import SimpleMemoryCache
+from diskcache import Cache
 
 # Remove default handler to allow configuration from __main__.py
 logger.remove()
@@ -40,6 +41,9 @@ class Settings(BaseSettings):
     docy_cache_ttl: int = Field(
         default=3600, description="Cache time-to-live in seconds"
     )
+    docy_cache_directory: str = Field(
+        default=".docy.cache", description="Path to the cache directory"
+    )
     docy_debug: bool = Field(default=False, description="Enable debug logging")
     docy_skip_crawl4ai_setup: bool = Field(
         default=False, description="Skip running crawl4ai-setup command at startup"
@@ -52,6 +56,10 @@ class Settings(BaseSettings):
     @property
     def cache_ttl(self) -> int:
         return self.docy_cache_ttl
+
+    @property
+    def cache_directory(self) -> str:
+        return self.docy_cache_directory
 
     @property
     def debug(self) -> bool:
@@ -142,7 +150,7 @@ cache = None
 
 
 def async_cached(func):
-    """Decorator to cache results of async functions using aiocache."""
+    """Decorator to cache results of async functions using diskcache."""
 
     @wraps(func)
     async def wrapper(*args, **kwargs):
@@ -156,7 +164,7 @@ def async_cached(func):
         key = f"{func.__name__}:{str(args)}:{str(kwargs)}"
 
         # Try to get the result from cache
-        cached_result = await cache.get(key)
+        cached_result = cache.get(key)
         if cached_result is not None:
             logger.info(f"Cache HIT for {func.__name__}")
             return cached_result
@@ -168,7 +176,7 @@ def async_cached(func):
             result = await func(*args, **kwargs)
 
             # Store the result in cache
-            await cache.set(key, result, ttl=settings.cache_ttl)
+            cache.set(key, result, expire=settings.cache_ttl)
 
             return result
         except Exception as e:
@@ -183,7 +191,7 @@ mcp = FastMCP(
     SERVER_NAME,
     version=SERVER_VERSION,
     description="Documentation search and access functionality for LLMs",
-    dependencies=["crawl4ai", "aiocache", "loguru", "pydantic-settings"],
+    dependencies=["crawl4ai", "diskcache", "loguru", "pydantic-settings"],
 )
 
 
@@ -431,6 +439,10 @@ async def cache_documentation_urls():
         return
 
     logger.info(f"Pre-caching {len(docs_urls)} documentation URLs...")
+
+    # Get cache statistics before pre-caching
+    cache_size_before = cache.volume()
+
     for url in docs_urls:
         try:
             logger.info(f"Pre-caching documentation URL: {url}")
@@ -439,13 +451,32 @@ async def cache_documentation_urls():
         except Exception as e:
             logger.error(f"Failed to cache documentation URL {url}: {str(e)}")
 
+    # Get cache statistics after pre-caching
+    cache_size_after = cache.volume()
+    logger.info(
+        f"Cache size: {cache_size_before / 1024:.2f} KB -> {cache_size_after / 1024:.2f} KB"
+    )
+
 
 def create_server() -> FastMCP:
     """Create and configure the MCP server instance."""
     global cache
 
-    # Initialize the aiocache SimpleMemoryCache
-    cache = SimpleMemoryCache()
+    # Initialize the diskcache Cache
+    cache_dir = settings.cache_directory
+    logger.info(f"Initializing disk cache at: {cache_dir}")
+
+    # Ensure parent directory exists if cache_dir has a parent path
+    parent_dir = os.path.dirname(cache_dir)
+    if parent_dir:
+        os.makedirs(parent_dir, exist_ok=True)
+
+    # Initialize the cache with disk-based persistence
+    cache = Cache(cache_dir)
+
+    # Configure cache settings
+    cache.reset("size_limit", int(1e9))  # Default to 1GB size limit
+    logger.info(f"Disk cache initialized with TTL: {settings.cache_ttl}s")
 
     # Ensure crawl4ai is properly set up
     ensure_crawl4ai_setup()
