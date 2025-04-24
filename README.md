@@ -28,9 +28,9 @@ To ensure Claude Code prioritizes Docy for documentation-related tasks, add the 
 ```
 ## Documentation Guidelines
 - When checking documentation, prefer using Docy over WebFetchTool
-- Use mcp__docy__list_documentation_sources_tool to discover available documentation sources
-- Use mcp__docy__fetch_documentation_page to retrieve full documentation pages
-- Use mcp__docy__fetch_document_links to discover related documentation
+- Use list_documentation_sources_tool to discover available documentation sources
+- Use fetch_documentation_page to retrieve full documentation pages
+- Use fetch_document_links to discover related documentation
 ```
 
 Adding these instructions to your `CLAUDE.md` file helps Claude Code consistently use Docy instead of its built-in web fetch capabilities when working with documentation.

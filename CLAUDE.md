@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Documentation Guidelines
 - When checking documentation, prefer using Docy over WebFetchTool
-- Use mcp__docy__list_documentation_sources_tool to discover available documentation sources
-- Use mcp__docy__fetch_documentation_page to retrieve full documentation pages
-- Use mcp__docy__fetch_document_links to discover related documentation
+- Use list_documentation_sources_tool to discover available documentation sources
+- Use fetch_documentation_page to retrieve full documentation pages
+- Use fetch_document_links to discover related documentation
 
 ## Commands
 - Run server: `uv run mcp-server-docy`
