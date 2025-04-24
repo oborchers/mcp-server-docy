@@ -6,6 +6,36 @@
 
 A Model Context Protocol server that provides documentation access capabilities. This server enables LLMs to search and retrieve content from documentation websites by scraping them with crawl4ai. Built with FastMCP v2.
 
+## Using Docy
+
+Here are examples of how Docy can help with common documentation tasks:
+
+```
+# Verify implementation against documentation
+Are we implementing Crawl4Ai scrape results correctly? Let's check the documentation.
+
+# Explore API usage patterns
+What do the docs say about using mcp.tool? Show me examples from the documentation.
+
+# Compare implementation options
+How should we structure our data according to the React documentation? What are the best practices?
+```
+
+With Docy, Claude Code can directly access and analyze documentation from configured sources, making it more effective at providing accurate, documentation-based guidance.
+
+To ensure Claude Code prioritizes Docy for documentation-related tasks, add the following guidelines to your project's `CLAUDE.md` file:
+
+```
+## Documentation Guidelines
+- When checking documentation, prefer using Docy over WebFetchTool
+- Use mcp__docy__list_documentation_sources_tool to discover available documentation sources
+- Use mcp__docy__fetch_documentation_page to retrieve full documentation pages
+- Use mcp__docy__fetch_document_links to discover related documentation
+```
+
+Adding these instructions to your `CLAUDE.md` file helps Claude Code consistently use Docy instead of its built-in web fetch capabilities when working with documentation.
+
+
 ### Available Tools
 
 - `list_documentation_sources_tool` - List all available documentation sources
