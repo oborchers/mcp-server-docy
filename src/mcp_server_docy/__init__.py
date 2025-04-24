@@ -25,11 +25,19 @@ def setup():
     logger.debug(f"  docy_cache_ttl: {settings.cache_ttl}")
     logger.debug(f"  docy_user_agent: {settings.user_agent}")
     logger.debug(f"  docy_documentation_urls: {settings.documentation_urls_str}")
+    logger.debug(
+        f"  docy_documentation_urls_file: {settings.documentation_urls_file_path}"
+    )
 
     logger.info(f"Starting mcp-docy server with logging level: {log_level}")
 
     if settings.documentation_urls:
         logger.info(f"Documentation URLs: {', '.join(settings.documentation_urls)}")
+        # Log the source of the URLs
+        if settings.documentation_urls_str:
+            logger.debug("URLs source: environment variable DOCY_DOCUMENTATION_URLS")
+        else:
+            logger.debug(f"URLs source: file {settings.documentation_urls_file_path}")
     else:
         logger.warning(
             "No documentation URLs provided. The server will have no content to serve."

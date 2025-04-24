@@ -1,0 +1,10 @@
+# Docy URLs Configuration
+# Add one documentation URL per line
+# Lines starting with # are treated as comments
+
+# Official documentation
+https://docs.crawl4ai.com/
+
+# Community resources
+https://raw.githubusercontent.com/jlowin/fastmcp/refs/heads/main/README.md
+https://raw.githubusercontent.com/aio-libs/aiocache/refs/heads/master/README.rst
