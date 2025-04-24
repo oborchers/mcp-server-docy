@@ -150,11 +150,15 @@ cache = None
 
 
 def async_cached(func):
-    """Decorator to cache results of async functions using diskcache."""
+    """Decorator to cache results of async functions using diskcache.
+
+    Uses an executor to prevent blocking the event loop during cache operations.
+    """
 
     @wraps(func)
     async def wrapper(*args, **kwargs):
         global cache
+        loop = asyncio.get_event_loop()
 
         if cache is None:
             logger.warning("Cache not initialized, skipping caching")
@@ -163,8 +167,9 @@ def async_cached(func):
         # Create a cache key from the function name and arguments
         key = f"{func.__name__}:{str(args)}:{str(kwargs)}"
 
-        # Try to get the result from cache
-        cached_result = cache.get(key)
+        # Try to get the result from cache (offload to executor)
+        cached_result = await loop.run_in_executor(None, lambda: cache.get(key))
+
         if cached_result is not None:
             logger.info(f"Cache HIT for {func.__name__}")
             return cached_result
@@ -175,8 +180,10 @@ def async_cached(func):
         try:
             result = await func(*args, **kwargs)
 
-            # Store the result in cache
-            cache.set(key, result, expire=settings.cache_ttl)
+            # Store the result in cache (offload to executor)
+            await loop.run_in_executor(
+                None, lambda: cache.set(key, result, expire=settings.cache_ttl)
+            )
 
             return result
         except Exception as e:
