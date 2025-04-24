@@ -1,5 +1,6 @@
 from typing import Dict, List, Optional
 import json
+import os
 import subprocess
 import asyncio
 from functools import wraps
@@ -9,14 +10,14 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from fastmcp import FastMCP
 from crawl4ai import AsyncWebCrawler
-from aiocache import SimpleMemoryCache
+from diskcache import Cache
 
 # Remove default handler to allow configuration from __main__.py
 logger.remove()
 
 # Server metadata
 SERVER_NAME = "Docy"
-SERVER_VERSION = "0.1.0"
+SERVER_VERSION = "0.3.0"
 DEFAULT_USER_AGENT = f"ModelContextProtocol/1.0 {SERVER_NAME} (+https://github.com/modelcontextprotocol/servers)"
 
 
@@ -38,7 +39,10 @@ class Settings(BaseSettings):
         description="Path to a file containing documentation URLs (one per line)",
     )
     docy_cache_ttl: int = Field(
-        default=3600, description="Cache time-to-live in seconds"
+        default=432000, description="Cache time-to-live in seconds"
+    )
+    docy_cache_directory: str = Field(
+        default=".docy.cache", description="Path to the cache directory"
     )
     docy_debug: bool = Field(default=False, description="Enable debug logging")
     docy_skip_crawl4ai_setup: bool = Field(
@@ -52,6 +56,10 @@ class Settings(BaseSettings):
     @property
     def cache_ttl(self) -> int:
         return self.docy_cache_ttl
+
+    @property
+    def cache_directory(self) -> str:
+        return self.docy_cache_directory
 
     @property
     def debug(self) -> bool:
@@ -142,11 +150,15 @@ cache = None
 
 
 def async_cached(func):
-    """Decorator to cache results of async functions using aiocache."""
+    """Decorator to cache results of async functions using diskcache.
+
+    Uses an executor to prevent blocking the event loop during cache operations.
+    """
 
     @wraps(func)
     async def wrapper(*args, **kwargs):
         global cache
+        loop = asyncio.get_event_loop()
 
         if cache is None:
             logger.warning("Cache not initialized, skipping caching")
@@ -155,8 +167,9 @@ def async_cached(func):
         # Create a cache key from the function name and arguments
         key = f"{func.__name__}:{str(args)}:{str(kwargs)}"
 
-        # Try to get the result from cache
-        cached_result = await cache.get(key)
+        # Try to get the result from cache (offload to executor)
+        cached_result = await loop.run_in_executor(None, lambda: cache.get(key))
+
         if cached_result is not None:
             logger.info(f"Cache HIT for {func.__name__}")
             return cached_result
@@ -167,8 +180,10 @@ def async_cached(func):
         try:
             result = await func(*args, **kwargs)
 
-            # Store the result in cache
-            await cache.set(key, result, ttl=settings.cache_ttl)
+            # Store the result in cache (offload to executor)
+            await loop.run_in_executor(
+                None, lambda: cache.set(key, result, expire=settings.cache_ttl)
+            )
 
             return result
         except Exception as e:
@@ -183,11 +198,10 @@ mcp = FastMCP(
     SERVER_NAME,
     version=SERVER_VERSION,
     description="Documentation search and access functionality for LLMs",
-    dependencies=["crawl4ai", "aiocache", "loguru", "pydantic-settings"],
+    dependencies=["crawl4ai", "diskcache", "loguru", "pydantic-settings"],
 )
 
 
-@async_cached
 async def fetch_documentation_content(url: str) -> Dict:
     """Fetch the content of a documentation page by direct URL."""
     logger.info(f"Fetching documentation page content from {url}")
@@ -204,12 +218,13 @@ async def fetch_documentation_content(url: str) -> Dict:
             if result.markdown:
                 # Check if markdown is a string or a MarkdownGenerationResult object
                 if isinstance(result.markdown, str):
-                    markdown_content = result.markdown
+                    markdown_content = str(result.markdown)
                 else:
                     # If it's a MarkdownGenerationResult, use the appropriate field
-                    markdown_content = getattr(
-                        result.markdown, "markdown_with_citations", ""
-                    ) or getattr(result.markdown, "raw_markdown", "")
+                    markdown_content = str(
+                        getattr(result.markdown, "markdown_with_citations", "")
+                        or getattr(result.markdown, "raw_markdown", "")
+                    )
 
             # Get page title from metadata or use URL as fallback
             title = ""
@@ -231,6 +246,13 @@ async def fetch_documentation_content(url: str) -> Dict:
     except Exception as e:
         logger.error(f"Failed to fetch documentation page content from {url}: {str(e)}")
         raise ValueError(f"Failed to fetch documentation content: {str(e)}")
+
+
+# Apply caching to the fetch_documentation_content function
+@async_cached
+async def cached_fetch_documentation_content(url: str) -> Dict:
+    """Cached version of fetch_documentation_content."""
+    return await fetch_documentation_content(url)
 
 
 @mcp.resource("documentation://sources")
@@ -298,7 +320,7 @@ async def fetch_documentation_page(url: str) -> str:
         url = f"https://{url}"
 
     try:
-        result = await fetch_documentation_content(url)
+        result = await cached_fetch_documentation_content(url)
         logger.info("Successfully fetched documentation page content")
 
         if not result.get("success", True):
@@ -350,7 +372,7 @@ async def fetch_document_links(url: str) -> str:
         url = f"https://{url}"
 
     try:
-        result = await fetch_documentation_content(url)
+        result = await cached_fetch_documentation_content(url)
         logger.info("Successfully fetched links from documentation page")
 
         if not result.get("success", True):
@@ -431,21 +453,44 @@ async def cache_documentation_urls():
         return
 
     logger.info(f"Pre-caching {len(docs_urls)} documentation URLs...")
+
+    # Get cache statistics before pre-caching
+    cache_size_before = cache.volume()
+
     for url in docs_urls:
         try:
             logger.info(f"Pre-caching documentation URL: {url}")
-            await fetch_documentation_content(url)
+            await cached_fetch_documentation_content(url)
             logger.info(f"Successfully cached content from {url}")
         except Exception as e:
             logger.error(f"Failed to cache documentation URL {url}: {str(e)}")
+
+    # Get cache statistics after pre-caching
+    cache_size_after = cache.volume()
+    logger.info(
+        f"Cache size: {cache_size_before / 1024:.2f} KB -> {cache_size_after / 1024:.2f} KB"
+    )
 
 
 def create_server() -> FastMCP:
     """Create and configure the MCP server instance."""
     global cache
 
-    # Initialize the aiocache SimpleMemoryCache
-    cache = SimpleMemoryCache()
+    # Initialize the diskcache Cache
+    cache_dir = settings.cache_directory
+    logger.info(f"Initializing disk cache at: {cache_dir}")
+
+    # Ensure parent directory exists if cache_dir has a parent path
+    parent_dir = os.path.dirname(cache_dir)
+    if parent_dir:
+        os.makedirs(parent_dir, exist_ok=True)
+
+    # Initialize the cache with disk-based persistence
+    cache = Cache(cache_dir)
+
+    # Configure cache settings
+    cache.reset("size_limit", int(1e9))  # Default to 1GB size limit
+    logger.info(f"Disk cache initialized with TTL: {settings.cache_ttl}s")
 
     # Ensure crawl4ai is properly set up
     ensure_crawl4ai_setup()

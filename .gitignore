@@ -175,3 +175,6 @@ cython_debug/
 
 # VS Code
 *.code-workspace
+
+# Docy cache directory
+.docy.cache/

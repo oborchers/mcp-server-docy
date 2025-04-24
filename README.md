@@ -28,9 +28,9 @@ To ensure Claude Code prioritizes Docy for documentation-related tasks, add the 
 ```
 ## Documentation Guidelines
 - When checking documentation, prefer using Docy over WebFetchTool
-- Use mcp__docy__list_documentation_sources_tool to discover available documentation sources
-- Use mcp__docy__fetch_documentation_page to retrieve full documentation pages
-- Use mcp__docy__fetch_document_links to discover related documentation
+- Use list_documentation_sources_tool to discover available documentation sources
+- Use fetch_documentation_page to retrieve full documentation pages
+- Use fetch_document_links to discover related documentation
 ```
 
 Adding these instructions to your `CLAUDE.md` file helps Claude Code consistently use Docy instead of its built-in web fetch capabilities when working with documentation.
@@ -202,6 +202,7 @@ The application can be configured using environment variables:
 - `DOCY_DOCUMENTATION_URLS` (string): Comma-separated list of URLs to documentation sites to include (e.g., "https://docs.crawl4ai.com/,https://react.dev/")
 - `DOCY_DOCUMENTATION_URLS_FILE` (string): Path to a file containing documentation URLs, one per line (default: ".docy.urls")
 - `DOCY_CACHE_TTL` (integer): Cache time-to-live in seconds (default: 3600)
+- `DOCY_CACHE_DIRECTORY` (string): Path to the cache directory (default: ".docy.cache")
 - `DOCY_USER_AGENT` (string): Custom User-Agent string for HTTP requests
 - `DOCY_DEBUG` (boolean): Enable debug logging ("true", "1", "yes", or "y")
 - `DOCY_SKIP_CRAWL4AI_SETUP` (boolean): Skip running the crawl4ai-setup command at startup ("true", "1", "yes", or "y")
@@ -233,9 +234,16 @@ The MCP server automatically caches documentation content to improve performance
 - At startup, the server pre-fetches and caches all configured documentation URLs from `DOCY_DOCUMENTATION_URLS`
 - The cache time-to-live (TTL) can be configured via the `DOCY_CACHE_TTL` environment variable
 - Each new site accessed is automatically loaded into cache to reduce traffic and improve response times
-- Cached content is stored in memory and persists for the duration of the TTL
+- Cached content is stored in a persistent disk-based cache using the `diskcache` library
+- The cache location can be configured via the `DOCY_CACHE_DIRECTORY` environment variable (default: ".docy.cache")
+- The cache persists between server restarts, providing better performance for frequently accessed documentation
 
-This caching strategy minimizes external requests and significantly improves response times for frequently accessed documentation.
+This caching strategy minimizes external requests and significantly improves response times for frequently accessed documentation while maintaining cache persistence across server restarts.
+
+## Local Development
+- Run in development mode: `fastmcp dev src/mcp_server_docy/__main__.py --with-editable .`
+- Access API at: `http://127.0.0.1:6274`
+- Run with MCP inspector: `uv run --with fastmcp --with-editable /Users/oliverborchers/Desktop/Code.nosync/mcp-server-docy --with crawl4ai --with loguru --with diskcache --with pydantic-settings fastmcp run src/mcp_server_docy/__main__.py`
 
 ## Debugging
 
