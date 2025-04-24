@@ -5,7 +5,7 @@
       "command": "uvx",
       "args": ["mcp-server-docy"],
       "env": {
-        "DOCY_DOCUMENTATION_URLS_FILE": "/Users/oliverborchers/Desktop/Code.nosync/mcp-server-docy/.docy.urls"
+        "DOCY_DOCUMENTATION_URLS_FILE": ".docy.urls"
       }
     }
   }
