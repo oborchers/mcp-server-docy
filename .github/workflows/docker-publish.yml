@@ -28,6 +28,10 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      # Set up QEMU for multi-architecture builds
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
       # Build and push
       - name: Build and push
         uses: docker/build-push-action@v5
@@ -35,6 +39,7 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
+          platforms: linux/amd64,linux/arm64
           tags: |
             oborchers/mcp-server-docy:latest
             oborchers/mcp-server-docy:${{ env.TAG_VERSION }}

@@ -201,11 +201,14 @@ The application can be configured using environment variables:
 
 - `DOCY_DOCUMENTATION_URLS` (string): Comma-separated list of URLs to documentation sites to include (e.g., "https://docs.crawl4ai.com/,https://react.dev/")
 - `DOCY_DOCUMENTATION_URLS_FILE` (string): Path to a file containing documentation URLs, one per line (default: ".docy.urls")
-- `DOCY_CACHE_TTL` (integer): Cache time-to-live in seconds (default: 3600)
+- `DOCY_CACHE_TTL` (integer): Cache time-to-live in seconds (default: 432000)
 - `DOCY_CACHE_DIRECTORY` (string): Path to the cache directory (default: ".docy.cache")
 - `DOCY_USER_AGENT` (string): Custom User-Agent string for HTTP requests
 - `DOCY_DEBUG` (boolean): Enable debug logging ("true", "1", "yes", or "y")
 - `DOCY_SKIP_CRAWL4AI_SETUP` (boolean): Skip running the crawl4ai-setup command at startup ("true", "1", "yes", or "y")
+- `DOCY_TRANSPORT` (string): Transport protocol to use (options: "sse" or "stdio", default: "stdio")
+- `DOCY_HOST` (string): Host address to bind the server to (default: "127.0.0.1")
+- `DOCY_PORT` (integer): Port to run the server on (default: 8000)
 
 Environment variables can be set directly or via a `.env` file.
 
@@ -259,6 +262,50 @@ Or if you've installed the package in a specific directory or are developing on 
 cd path/to/docy
 DOCY_DOCUMENTATION_URLS="https://docs.crawl4ai.com/" npx @modelcontextprotocol/inspector uv run mcp-server-docy
 ```
+
+### Troubleshooting: "Tool not found" Error in Claude Code CLI
+
+If you encounter errors like "ERROR Tool not found for mcp__docy__fetch_documentation_page" in Claude Code CLI, follow these steps:
+
+1. Create a `.docy.urls` file in your current directory with your documentation URLs:
+```
+https://docs.crawl4ai.com/
+https://react.dev/
+```
+
+2. Run the server using Docker with the SSE transport protocol and mount the URLs file:
+
+```bash
+docker run -i --rm -p 8000:8000 \
+  -e DOCY_TRANSPORT=sse \
+  -e DOCY_HOST=0.0.0.0 \
+  -e DOCY_PORT=8000 \
+  -v "$(pwd)/.docy.urls:/app/.docy.urls" \
+  oborchers/mcp-server-docy
+```
+
+3. Configure your Claude Code `.mcp.json` to use the SSE endpoint:
+
+```json
+{
+  "mcp": {
+    "servers": {
+      "docy": {
+        "type": "sse",
+        "url": "http://localhost:8000/sse"
+      }
+    }
+  }
+}
+```
+
+This configuration:
+- Uses a mounted `.docy.urls` file instead of environment variables for documentation sources
+- Switches from the default stdio mode to SSE (Server-Sent Events) protocol
+- Makes the server accessible from outside the container
+- Exposes the server on port 8000 for HTTP access
+
+The SSE transport is recommended when running the server as a standalone service that needs to be accessed over HTTP, which is particularly useful for Docker deployments.
 
 ## Release Process
 
