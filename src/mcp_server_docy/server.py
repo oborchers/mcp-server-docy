@@ -17,7 +17,7 @@ logger.remove()
 
 # Server metadata
 SERVER_NAME = "Docy"
-SERVER_VERSION = "0.3.0"
+SERVER_VERSION = "0.4.1"
 DEFAULT_USER_AGENT = f"ModelContextProtocol/1.0 {SERVER_NAME} (+https://github.com/modelcontextprotocol/servers)"
 
 
