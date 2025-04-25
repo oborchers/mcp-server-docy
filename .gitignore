@@ -178,6 +178,3 @@ cython_debug/
 
 # Docy cache directory
 .docy.cache/
-
-# Global server
-.global
