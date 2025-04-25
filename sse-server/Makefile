@@ -1,11 +1,11 @@
-# Makefile for Docy MCP Server
+# Makefile for Docy SSE Server
 
 # Configuration
 IMAGE_NAME := oborchers/mcp-server-docy:latest
 CACHE_DIR := $(shell pwd)/.docy.cache
-CONTAINER_NAME := docy-local
+CONTAINER_NAME := docy-sse-server
 URLS_FILE := $(shell pwd)/.docy.urls
-PORT := 8001
+PORT := 6274
 
 # Ensure cache directory exists
 $(shell mkdir -p $(CACHE_DIR))
@@ -14,28 +14,42 @@ $(shell mkdir -p $(CACHE_DIR))
 
 # Run the Docy container, mounting cache and .docy.urls file
 run:
-	@echo "Starting Docy container..."
+	@echo "Starting Docy SSE server..."
 	docker pull $(IMAGE_NAME)
 	docker run -d --name $(CONTAINER_NAME) \
 		-p $(PORT):$(PORT) \
 		-e DOCY_TRANSPORT=sse \
 		-e DOCY_HOST=0.0.0.0 \
 		-e DOCY_PORT=$(PORT) \
+		-e DOCY_CACHE_DIRECTORY=/cache \
+		-e DOCY_DOCUMENTATION_URLS_FILE=/app/.docy.urls \
 		-v $(CACHE_DIR):/cache \
 		-v $(URLS_FILE):/app/.docy.urls \
 		$(IMAGE_NAME)
-	@echo "Docy is running at http://localhost:$(PORT)"
+	@echo "Docy SSE server is running at http://localhost:$(PORT)"
+	@echo "Add this to your project's .mcp.json:"
+	@echo ""
+	@echo '{
+  "mcp": {
+    "servers": {
+      "docy": {
+        "type": "sse",
+        "url": "http://localhost:$(PORT)/sse"
+      }
+    }
+  }
+}'
 
 # Stop and remove the Docy container
 stop:
-	@echo "Stopping Docy container..."
+	@echo "Stopping Docy SSE server..."
 	-docker stop $(CONTAINER_NAME)
 	-docker rm $(CONTAINER_NAME)
-	@echo "Docy container stopped and removed"
+	@echo "Docy SSE server stopped and removed"
 
 # Restart the Docy container
 restart: stop run
-	@echo "Docy container restarted"
+	@echo "Docy SSE server restarted"
 
 # Reload URLs file without full restart
 reload-urls:
@@ -46,11 +60,11 @@ reload-urls:
 
 # Display help information
 help:
-	@echo "Docy MCP Server Makefile"
+	@echo "Docy SSE Server Makefile"
 	@echo ""
 	@echo "Available commands:"
-	@echo "  make run         - Start Docy container"
-	@echo "  make stop        - Stop and remove Docy container"
-	@echo "  make restart     - Restart Docy container"
+	@echo "  make run         - Start Docy SSE server"
+	@echo "  make stop        - Stop and remove Docy SSE server"
+	@echo "  make restart     - Restart Docy SSE server"
 	@echo "  make reload-urls - Reload URLs file without full restart"
 	@echo "  make help        - Display this help message"

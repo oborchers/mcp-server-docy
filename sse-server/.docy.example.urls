@@ -1,0 +1,15 @@
+# Docy URLs Configuration
+# Add one documentation URL per line
+# Lines starting with # are treated as comments
+
+# Official documentation
+https://docs.crawl4ai.com/
+https://grantjenks.com/docs/diskcache/tutorial.html
+https://fastmcp.readthedocs.io/
+
+# Popular frameworks and libraries
+https://react.dev/
+https://docs.python.org/3/
+https://nodejs.org/docs/latest/api/
+
+# Add your project-specific documentation below

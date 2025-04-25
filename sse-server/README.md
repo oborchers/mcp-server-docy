@@ -12,6 +12,7 @@ This directory contains configuration for running Docy as a persistent SSE (Serv
 ```bash
 # From the root of the mcp-server-docy repository
 cd sse-server
+cp .docy.example.urls .docy.urls  # Create your URLs file from the example
 make run
 ```
 
