@@ -1,7 +1,6 @@
 {
   "mcpServers": {
     "docy": {
-      "enabled": true,
       "type": "stdio",
       "command": "uvx",
       "args": ["mcp-server-docy"],
