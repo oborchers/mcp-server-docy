@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional
+from typing import Dict, List, Literal, Optional
 import json
 import os
 import subprocess
@@ -48,6 +48,13 @@ class Settings(BaseSettings):
     docy_skip_crawl4ai_setup: bool = Field(
         default=False, description="Skip running crawl4ai-setup command at startup"
     )
+    docy_transport: Literal["sse", "stdio"] = Field(
+        default="stdio", description="Transport protocol (sse or stdio)"
+    )
+    docy_host: str = Field(
+        default="127.0.0.1", description="Host address to bind the server to"
+    )
+    docy_port: int = Field(default=8000, description="Port to run the server on")
 
     @property
     def user_agent(self) -> str:
@@ -76,6 +83,18 @@ class Settings(BaseSettings):
     @property
     def documentation_urls_file_path(self) -> Optional[str]:
         return self.docy_documentation_urls_file
+
+    @property
+    def transport(self) -> Literal["sse", "stdio"]:
+        return self.docy_transport
+
+    @property
+    def host(self) -> str:
+        return self.docy_host
+
+    @property
+    def port(self) -> int:
+        return self.docy_port
 
     def _read_urls_from_file(self) -> List[str]:
         """Read URLs from a file, one per line."""
