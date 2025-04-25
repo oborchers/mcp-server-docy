@@ -29,16 +29,16 @@ run:
 	@echo "Docy SSE server is running at http://localhost:$(PORT)"
 	@echo "Add this to your project's .mcp.json:"
 	@echo ""
-	@echo '{
-  "mcp": {
-    "servers": {
-      "docy": {
-        "type": "sse",
-        "url": "http://localhost:$(PORT)/sse"
-      }
-    }
-  }
-}'
+	@echo '{'
+	@echo '  "mcp": {'
+	@echo '    "servers": {'
+	@echo '      "docy": {'
+	@echo '        "type": "sse",'
+	@echo '        "url": "http://localhost:$(PORT)/sse"'
+	@echo '      }'
+	@echo '    }'
+	@echo '  }'
+	@echo '}'
 
 # Stop and remove the Docy container
 stop:
@@ -47,8 +47,10 @@ stop:
 	-docker rm $(CONTAINER_NAME)
 	@echo "Docy SSE server stopped and removed"
 
-# Restart the Docy container
-restart: stop run
+# Restart the Docy container (depends on stop and run targets)
+restart:
+	@$(MAKE) stop
+	@$(MAKE) run
 	@echo "Docy SSE server restarted"
 
 # Reload URLs file without full restart
