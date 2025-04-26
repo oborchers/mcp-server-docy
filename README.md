@@ -234,6 +234,27 @@ This approach is especially useful for:
 
 The server will first check for URLs in the `DOCY_DOCUMENTATION_URLS` environment variable, and if none are found, it will look for the `.docy.urls` file.
 
+### Documentation URL Best Practices
+
+The URLs you configure should ideally point to documentation index or introduction pages that contain:
+
+- Tables of contents
+- Navigation structures
+- Collections of internal and external links
+
+This allows the LLM to:
+1. Start at a high-level documentation page
+2. Discover relevant subpages via links
+3. Navigate to specific documentation as needed
+
+Using documentation sites with well-structured subpages is highly recommended as it:
+- Minimizes context usage by allowing the LLM to focus on relevant sections
+- Improves navigation efficiency through documentation
+- Provides a natural way to explore and find information
+- Reduces the need to load entire documentation sets at once
+
+For example, instead of loading an entire documentation site, the LLM can start at the index page, identify the relevant section, and then navigate to specific subpages as needed.
+
 ### Caching Behavior
 
 The MCP server automatically caches documentation content to improve performance:
