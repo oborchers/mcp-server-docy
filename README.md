@@ -93,6 +93,10 @@ docker pull oborchers/mcp-server-docy:latest
 docker run -i --rm -e DOCY_DOCUMENTATION_URLS="https://docs.crawl4ai.com/,https://react.dev/" oborchers/mcp-server-docy
 ```
 
+### Global Server Setup
+
+For teams or multi-project development, check out the `server/README.md` for instructions on running a persistent SSE server that can be shared across multiple projects. This setup allows you to maintain a single Docy instance with shared documentation URLs and cache.
+
 ## Configuration
 
 ### Configure for Claude.app
