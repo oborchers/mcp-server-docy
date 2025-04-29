@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "docy": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["mcp-server-docy"],
+      "env": {
+        "DOCY_DOCUMENTATION_URLS_FILE": ".docy.urls"
+      }
+    }
+  }
+}
