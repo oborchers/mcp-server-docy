@@ -2,7 +2,13 @@ import os
 import tempfile
 import json
 from unittest.mock import patch
-from mcp_server_docy.server import Settings, SERVER_NAME, list_documentation_sources_tool, list_documentation_sources, documentation_sources
+from mcp_server_docy.server import (
+    Settings,
+    SERVER_NAME,
+    list_documentation_sources_tool,
+    list_documentation_sources,
+    documentation_sources,
+)
 
 
 def test_settings():
@@ -70,17 +76,17 @@ def test_hot_reload_urls_from_file():
     # First unset any environment variable to ensure file takes precedence
     if "DOCY_DOCUMENTATION_URLS" in os.environ:
         del os.environ["DOCY_DOCUMENTATION_URLS"]
-    
+
     # Create a temporary file with initial URLs
     with tempfile.NamedTemporaryFile(mode="w", delete=False) as tmp:
         tmp.write("https://initial1.example.com/\n")
         tmp.write("https://initial2.example.com/\n")
         tmp_path = tmp.name
-    
+
     try:
         os.environ["DOCY_DOCUMENTATION_URLS_FILE"] = tmp_path
         settings = Settings()
-        
+
         # First call - should get initial URLs
         with patch("mcp_server_docy.server.settings", settings):
             result1 = list_documentation_sources_tool()
@@ -89,13 +95,13 @@ def test_hot_reload_urls_from_file():
             urls1 = [item["url"] for item in parsed1]
             assert "https://initial1.example.com/" in urls1
             assert "https://initial2.example.com/" in urls1
-        
+
         # Now update the file with new URLs
         with open(tmp_path, "w") as f:
             f.write("https://updated1.example.com/\n")
             f.write("https://updated2.example.com/\n")
             f.write("https://updated3.example.com/\n")
-        
+
         # Second call - should get updated URLs (hot reload)
         with patch("mcp_server_docy.server.settings", settings):
             result2 = list_documentation_sources_tool()
@@ -105,7 +111,7 @@ def test_hot_reload_urls_from_file():
             assert "https://updated1.example.com/" in urls2
             assert "https://updated2.example.com/" in urls2
             assert "https://updated3.example.com/" in urls2
-        
+
         # Test the resource function also gets hot-reloaded URLs
         with patch("mcp_server_docy.server.settings", settings):
             result3 = list_documentation_sources()
@@ -115,7 +121,7 @@ def test_hot_reload_urls_from_file():
             assert "https://updated1.example.com/" in urls3
             assert "https://updated2.example.com/" in urls3
             assert "https://updated3.example.com/" in urls3
-            
+
         # Test the prompt function also gets hot-reloaded URLs
         with patch("mcp_server_docy.server.settings", settings):
             result4 = documentation_sources()
@@ -127,7 +133,7 @@ def test_hot_reload_urls_from_file():
             assert "https://updated1.example.com/" in urls4
             assert "https://updated2.example.com/" in urls4
             assert "https://updated3.example.com/" in urls4
-            
+
     finally:
         # Clean up
         if os.path.exists(tmp_path):
