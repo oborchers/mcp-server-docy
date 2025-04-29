@@ -279,8 +279,25 @@ def list_documentation_sources() -> str:
     """List all configured documentation sources."""
     logger.info("Listing all documentation sources")
 
-    # Access the configuration via settings
-    documentation_urls = settings.documentation_urls
+    # Read the documentation URLs directly from the file to get fresh values
+    documentation_urls = []
+
+    # First check if URL is provided via environment variable
+    if settings.documentation_urls_str:
+        documentation_urls = [
+            url.strip()
+            for url in settings.documentation_urls_str.split(",")
+            if url.strip()
+        ]
+        logger.info(
+            f"Using {len(documentation_urls)} documentation URLs from environment variable"
+        )
+    # Otherwise read from file for real-time updates
+    elif settings.documentation_urls_file_path:
+        documentation_urls = settings._read_urls_from_file()
+        logger.info(
+            f"Hot-reloaded {len(documentation_urls)} documentation URLs from file"
+        )
 
     results = []
     for url in documentation_urls:
@@ -305,9 +322,25 @@ def list_documentation_sources_tool() -> str:
 
     Response provides the URLs to documentation sources and their types.
     """
-    # Access the configuration via settings
-    documentation_urls = settings.documentation_urls
-    logger.info(f"Tool call: listing {len(documentation_urls)} documentation sources")
+    # Read the documentation URLs directly from the file to get fresh values
+    documentation_urls = []
+
+    # First check if URL is provided via environment variable
+    if settings.documentation_urls_str:
+        documentation_urls = [
+            url.strip()
+            for url in settings.documentation_urls_str.split(",")
+            if url.strip()
+        ]
+        logger.info(
+            f"Using {len(documentation_urls)} documentation URLs from environment variable"
+        )
+    # Otherwise read from file for real-time updates
+    elif settings.documentation_urls_file_path:
+        documentation_urls = settings._read_urls_from_file()
+        logger.info(
+            f"Hot-reloaded {len(documentation_urls)} documentation URLs from file"
+        )
 
     results = []
     for url in documentation_urls:
@@ -357,7 +390,28 @@ async def fetch_documentation_page(url: str) -> str:
 @mcp.prompt()
 def documentation_sources() -> str:
     """List all available documentation sources with their URLs and types"""
-    return "Please list all documentation sources available through this server."
+    # Get fresh documentation URLs (this will hot-reload from file if needed)
+    documentation_urls = []
+    if settings.documentation_urls_str:
+        documentation_urls = [
+            url.strip()
+            for url in settings.documentation_urls_str.split(",")
+            if url.strip()
+        ]
+    elif settings.documentation_urls_file_path:
+        documentation_urls = settings._read_urls_from_file()
+        logger.info(
+            f"Hot-reloaded {len(documentation_urls)} documentation URLs for prompt"
+        )
+
+    # Format the response as a JSON string for consistency
+    results = []
+    for url in documentation_urls:
+        results.append(
+            {"url": url, "type": "web", "description": "Web-based documentation"}
+        )
+
+    return f"Please list all documentation sources available through this server. Here they are:\n{json.dumps(results, indent=2)}"
 
 
 @mcp.prompt()
