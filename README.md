@@ -1,5 +1,19 @@
 ![Docy Logo](media/logo.png)
 
+# Docy: Documentation at Your AI's Fingertips
+
+**Supercharge your AI assistant with instant access to technical documentation.**
+
+Docy gives your AI direct access to the technical documentation it needs, right when it needs it. No more outdated information, broken links, or rate limits - just accurate, real-time documentation access for more precise coding assistance.
+
+## Why Choose Docy?
+
+- **Instant Documentation Access**: Direct access to docs from React, Python, crawl4ai, and any other tech stack you use
+- **Hot-Reload Support**: Add new documentation sources on-the-fly without restarting - just edit the .docy.urls file!
+- **Intelligent Caching**: Reduces latency and external requests while maintaining fresh content
+- **Self-Hosted Control**: Keep your documentation access within your security perimeter
+- **Seamless MCP Integration**: Works effortlessly with Claude, VS Code, and other MCP-enabled AI tools
+
 > **Note**: Claude may default to using its built-in WebFetchTool instead of Docy. To explicitly request Docy's functionality, use a callout like: "Please use Docy to find..."
 
 # Docy MCP Server
@@ -234,6 +248,16 @@ This approach is especially useful for:
 
 The server will first check for URLs in the `DOCY_DOCUMENTATION_URLS` environment variable, and if none are found, it will look for the `.docy.urls` file.
 
+#### Hot Reload for URL File
+
+When using the `.docy.urls` file for documentation sources, the server implements a hot-reload mechanism that reads the file on each request rather than caching the URLs. This means you can:
+
+1. Add, remove, or modify documentation URLs in the `.docy.urls` file while the server is running
+2. See those changes reflected immediately in subsequent calls to `list_documentation_sources_tool` or other documentation tools
+3. Avoid restarting the server when modifying your documentation sources
+
+This is particularly useful during development or when you need to quickly add new documentation sources to a running server.
+
 ### Documentation URL Best Practices
 
 The URLs you configure should ideally point to documentation index or introduction pages that contain:
@@ -266,7 +290,14 @@ The MCP server automatically caches documentation content to improve performance
 - The cache location can be configured via the `DOCY_CACHE_DIRECTORY` environment variable (default: ".docy.cache")
 - The cache persists between server restarts, providing better performance for frequently accessed documentation
 
-This caching strategy minimizes external requests and significantly improves response times for frequently accessed documentation while maintaining cache persistence across server restarts.
+#### Exceptions to Caching
+
+While most content is cached for performance, there are specific exceptions:
+
+- **Documentation URL Lists**: When using the `.docy.urls` file, the list of documentation sources is never cached - instead, the file is re-read on each request to support hot-reloading of URLs
+- **Page Content**: The actual content of documentation pages is still cached according to the configured TTL
+
+This hybrid approach offers both performance benefits for content access and flexibility for documentation source management.
 
 ## Local Development
 - Run in development mode: `fastmcp dev src/mcp_server_docy/__main__.py --with-editable .`
