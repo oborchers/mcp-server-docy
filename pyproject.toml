@@ -1,6 +1,6 @@
 [project]
 name = "mcp-server-docy"
-version = "0.4.1"
+version = "0.5.0"
 description = "A Model Context Protocol (MCP) server for accessing documentation"
 readme = "README.md"
 requires-python = ">=3.11"
