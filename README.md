@@ -386,6 +386,10 @@ https://github.com/modelcontextprotocol/servers
 
 Pull requests are welcome! Feel free to contribute new ideas, bug fixes, or enhancements to make mcp-server-docy even more powerful and useful.
 
+## Author
+
+Built by [Dr. Oliver Borchers](https://www.drborchers.com), Executive AI and Automation Partner and Head of AI Engineering at IU Group.
+
 ## License
 
 mcp-server-docy is licensed under the MIT License. This means you are free to use, modify, and distribute the software, subject to the terms and conditions of the MIT License. For more details, please see the LICENSE file in the project repository.
