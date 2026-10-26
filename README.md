@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/oborchers-mcp-server-docy-badge.png)](https://mseep.ai/app/oborchers-mcp-server-docy)
+
 ![Docy Logo](media/logo.png)
 
 # Docy: Documentation at Your AI's Fingertips
